@@ -167,13 +167,11 @@
     const handsCountDisplay = document.getElementById('handsCount');
     const wheelCountDisplay = document.getElementById('wheelCount');
 
-    // === Element ของ Pose ที่เพิ่มเข้ามา ===
     const btnTogglePose = document.getElementById('btnTogglePose');
     const poseDisplay = document.getElementById('poseDisplay');
     const yawDisplay = document.getElementById('yawDisplay');
     const pitchValue = document.getElementById('pitchValue');
     const yawValue = document.getElementById('yawValue');
-    // ===================================
 
     // === Config
     const THRESH = {
@@ -182,7 +180,7 @@
       EYE_CLOSED_SEC: 0.8,
       YAWN_SEC: 1.5,
       BOTH_HANDS_UP_SEC: 2,
-      PITCH_DOWN: 6,
+      PITCH_DOWN: 8,
       PITCH_UP: -15,
       YAW_LEFT: 12,
       YAW_RIGHT: -12,
@@ -198,7 +196,7 @@
     let isRunning = false, isBusy = false, lastTick = 0;
     let calibrated = false;
     let wheelOffStart = null;
-    let showPose = false; // <-- State ใหม่สำหรับ Toggle Pose
+    let showPose = false; 
 
     let faceLandmarker, handLandmarker, cocoSsdModel = null;
     let modelsReady = false, phoneReady = false;
@@ -303,7 +301,7 @@
 
     function eulerFromR(r){ const r00=r[0],r01=r[1],r02=r[2]; const r10=r[3],r11=r[4],r12=r[5]; const r20=r[6],r21=r[7],r22=r[8]; const sy=Math.hypot(r00,r10); let pitch,yaw,roll; if(sy>1e-6){ pitch=Math.atan2(-r20,sy); yaw=Math.atan2(r10,r00); roll=Math.atan2(r21,r22);} else { pitch=Math.atan2(-r20,sy); yaw=Math.atan2(-r01,r11); roll=0;} return {pitch:rad2deg(pitch),yaw:rad2deg(yaw),roll:rad2deg(roll)}; }
     function poseFromMatrixAuto(m4){ if(!m4) return null; const a=Array.from(m4); if(a.length<16) return null; const Rr=[a[0],a[1],a[2], a[4],a[5],a[6], a[8],a[9],a[10]]; const Rc=[a[0],a[4],a[8], a[1],a[5],a[9], a[2],a[6],a[10]]; const er=eulerFromR(Rr), ec=eulerFromR(Rc); const mr=Math.abs(er.pitch)+Math.abs(er.yaw)+Math.abs(er.roll); const mc=Math.abs(ec.pitch)+Math.abs(ec.yaw)+Math.abs(ec.roll); const useCol=mc>mr*1.1; const e=useCol?ec:er; return { pitch:clamp(e.pitch,-60,60), yaw:clamp(e.yaw,-90,90), roll:clamp(e.roll,-60,60) }; }
-    function poseSimple(lm){ const Leye=lm[33],Reye=lm[263],Nose=lm[1]; if(!Leye||!Reye||!Nose) return null; const midX=(Leye.x+Reye.x)/2, midY=(Leye.y+Reye.y)/2; const yaw=(Nose.x-midX)*260; const pitch=(midY-Nose.y)*360; return {pitch:clamp(pitch,-60,60),yaw:clamp(yaw,-90,90),roll:0}; }
+    function poseSimple(lm){ const Leye=lm[33],Reye=lm[263],Nose=lm[1]; if(!Leye||!Reye||!Nose) return null; const midX=(Leye.x+Reye.x)/2, midY=(Leye.y+Reye.y)/2; const yaw=(Nose.x-midX)*260; const pitch=(midY-Nose.y)*360; return {pitch:clamp(pitch,-60,66),yaw:clamp(yaw,-90,90),roll:0}; }
     function resizeCanvas(){ const w=video.videoWidth||640, h=video.videoHeight||480; canvas.width=w; canvas.height=h; }
     window.addEventListener('resize',()=>{ if(video?.videoWidth) resizeCanvas(); });
     
@@ -539,12 +537,10 @@
             const finalPitch = -calibratedPitch;
             const finalYaw = calibratedYaw;
 
-            // === อัปเดตค่า Pose (ถ้าเปิด Show Pose) ===
             if (showPose) {
               pitchValue.textContent = finalPitch.toFixed(1);
               yawValue.textContent = finalYaw.toFixed(1);
             }
-            // =====================================
 
             if (finalYaw > THRESH.YAW_LEFT) { yawAlertText = 'หันซ้าย'; }
             else if (finalYaw < THRESH.YAW_RIGHT) { yawAlertText = 'หันขวา'; }
@@ -597,19 +593,34 @@
         } else {
           handsStart = null; hasAlertedHands = false;
         }
-        if (!handsAlert) {
+
+        // ========================================================
+        // === นี่คือส่วนของ LOGIC ที่แก้ไขตรรกะกลับด้านแล้ว ===
+        // ========================================================
+        if (!handsAlert) { 
+          // ถ้ามือไม่ได้ยกสูง (handsAlert) ให้เช็คการปล่อยพวงมาลัย
+
           if (handsOnScreen === 0) {
-            if (wheelOffStart === null) wheelOffStart = now;
+            // SAFE: ไม่เห็นมือ = มืออยู่บนพวงมาลัย (นอกเฟรม)
+            wheelOffStart = null; 
+            hasAlertedWheel = false;
+          } else {
+            // DANGER: เห็นมือ = มือลอยอยู่ (ไม่ได้อยู่บนพวงมาลัย)
+            if (wheelOffStart === null) wheelOffStart = now; // เริ่มจับเวลา
             if ((now - wheelOffStart) / 1000 > THRESH.WHEEL_OFF_ALERT_SEC) {
-              wheelAlert = true;
+              wheelAlert = true; // แจ้งเตือน
               if (!hasAlertedWheel) { wheelCount++; hasAlertedWheel = true; }
             }
-          } else {
-            wheelOffStart = null; hasAlertedWheel = false;
           }
         } else {
-          wheelOffStart = null; hasAlertedWheel = false;
+          // ถ้ามือยกสูง (handsAlert) ให้รีเซ็ตการจับเวลา wheelAlert (เพราะถือเป็นคนละเคส)
+          wheelOffStart = null; 
+          hasAlertedWheel = false;
         }
+        // ========================================================
+        // === จบส่วนที่แก้ไข ====================================
+        // ========================================================
+
 
         let phoneBoxes = []; 
         if (phoneReady && cocoSsdModel) {
@@ -730,7 +741,6 @@
         }
       } else {
         isRunning = false; btnToggle.textContent='Start';
-        // รีเซ็ตค่า Pose display เมื่อกด Stop
         if (showPose) {
           pitchValue.textContent = '0.0';
           yawValue.textContent = '0.0';
@@ -746,9 +756,8 @@
       }
     });
 
-    // === Event Listener สำหรับปุ่ม Toggle Pose ===
     btnTogglePose.addEventListener('click', () => {
-      showPose = !showPose; // สลับค่า
+      showPose = !showPose; 
       if (showPose) {
         poseDisplay.style.display = 'flex';
         yawDisplay.style.display = 'flex';
@@ -763,7 +772,6 @@
         btnTogglePose.classList.add('bg-gray-600', 'hover:bg-gray-700');
       }
     });
-    // ===========================================
 
     (async ()=>{
       try{
