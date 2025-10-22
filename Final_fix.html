@@ -442,11 +442,12 @@
       wheelStatusIcon.style.backgroundColor = v.wheelAlert ? red : defaultColor;
 
       // --- Logic การจัดการเสียง (Priority & Fade Out) ---
+      // <-- 2. แก้ไขลำดับความสำคัญ: ย้าย phoneAlert ขึ้นมา
       const soundPriority = [
         { flag: v.eyeAlert,       id: 'EYES',  el: sndEyes  },
+        { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone }, // <-- ย้ายมานี่
         { flag: v.handsAlert,     id: 'WHEEL', el: sndWheel }, 
         { flag: v.wheelAlert,     id: 'WHEEL', el: sndWheel },
-        { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone },
         { flag: v.pitchAlertText, id: 'LOOK',  el: sndLook  }, 
         { flag: v.yawAlertText,   id: 'LOOK',  el: sndLook  },
         { flag: v.yawnAlert,      id: 'YAWN',  el: sndYawn  }
@@ -527,6 +528,7 @@
         ctx.clearRect(0,0,canvas.width,canvas.height);
 
         if(face){
+          // ... (โค้ดส่วน Face, Pose, EAR, MAR ไม่มีการเปลี่ยนแปลง) ...
           const m4 = resF?.facialTransformationMatrixes?.[0];
           let pose = poseFromMatrixAuto(m4) || poseSimple(face);
           if(pose){
@@ -595,33 +597,8 @@
         }
 
         // ========================================================
-        // === นี่คือส่วนของ LOGIC ที่แก้ไขตรรกะกลับด้านแล้ว ===
+        // === 1. (ย้ายมา) ตรวจจับโทรศัพท์ก่อน =======================
         // ========================================================
-        if (!handsAlert) { 
-          // ถ้ามือไม่ได้ยกสูง (handsAlert) ให้เช็คการปล่อยพวงมาลัย
-
-          if (handsOnScreen === 0) {
-            // SAFE: ไม่เห็นมือ = มืออยู่บนพวงมาลัย (นอกเฟรม)
-            wheelOffStart = null; 
-            hasAlertedWheel = false;
-          } else {
-            // DANGER: เห็นมือ = มือลอยอยู่ (ไม่ได้อยู่บนพวงมาลัย)
-            if (wheelOffStart === null) wheelOffStart = now; // เริ่มจับเวลา
-            if ((now - wheelOffStart) / 1000 > THRESH.WHEEL_OFF_ALERT_SEC) {
-              wheelAlert = true; // แจ้งเตือน
-              if (!hasAlertedWheel) { wheelCount++; hasAlertedWheel = true; }
-            }
-          }
-        } else {
-          // ถ้ามือยกสูง (handsAlert) ให้รีเซ็ตการจับเวลา wheelAlert (เพราะถือเป็นคนละเคส)
-          wheelOffStart = null; 
-          hasAlertedWheel = false;
-        }
-        // ========================================================
-        // === จบส่วนที่แก้ไข ====================================
-        // ========================================================
-
-
         let phoneBoxes = []; 
         if (phoneReady && cocoSsdModel) {
           const predictions = await cocoSsdModel.detect(video);
@@ -667,7 +644,36 @@
           hasAlertedPhone = false;
           phoneLastSeenTime = null;
         }
-        phoneAlert = phone;
+        phoneAlert = phone; // <-- ★ ได้ค่า phoneAlert แล้ว
+
+        // ========================================================
+        // === 2. (แก้ไข) ตรวจจับพวงมาลัย โดยอ้างอิงค่า phoneAlert ===
+        // ========================================================
+        
+        // เราจะเช็ค 'wheelAlert' (มือลอย) ก็ต่อเมื่อ...
+        // 1. ไม่ได้ยกสองมือ (handsAlert) และ 2. ไม่ได้เล่นโทรศัพท์ (phoneAlert)
+        if (!handsAlert && !phoneAlert) { 
+          
+          if (handsOnScreen === 0) {
+            // SAFE: ไม่เห็นมือ = มืออยู่บนพวงมาลัย (นอกเฟรม)
+            wheelOffStart = null; 
+            hasAlertedWheel = false;
+          } else {
+            // DANGER: เห็นมือ (และมือนี้ไม่ได้ถือโทรศัพท์) = มือลอย
+            if (wheelOffStart === null) wheelOffStart = now; // เริ่มจับเวลา
+            if ((now - wheelOffStart) / 1000 > THRESH.WHEEL_OFF_ALERT_SEC) {
+              wheelAlert = true; // แจ้งเตือน
+              if (!hasAlertedWheel) { wheelCount++; hasAlertedWheel = true; }
+            }
+          }
+        } else {
+          // ถ้ายกสองมือ หรือ กำลังเล่นโทรศัพท์ -> ให้รีเซ็ตการจับเวลา "มือลอย"
+          wheelOffStart = null; 
+          hasAlertedWheel = false;
+        }
+        // ========================================================
+        // === จบส่วนที่แก้ไข ====================================
+        // ========================================================
         
         updateStatusIcons({ eyeAlert, yawnAlert, handsAlert, phoneAlert, wheelAlert, faceLost, yawAlertText, pitchAlertText });
 
