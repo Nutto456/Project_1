@@ -108,6 +108,7 @@
         <span>Look:</span>
         <span id="lookCount">0</span>
       </div>
+      
       <div class="indicator-count-item" id="poseDisplay" style="display: none; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.25rem; margin-top: 0.25rem;">
         <span>Pitch:</span>
         <span id="pitchValue">0.0</span>
@@ -117,6 +118,7 @@
         <span id="yawValue">0.0</span>
       </div>
       </div>
+
     <div id="alertBox" class="alert-popup">
       <div id="alertCard" class="card">
         <h2 id="alertText" class="text-2xl"></h2>
@@ -168,7 +170,7 @@
     const phoneCountDisplay = document.getElementById('phoneCount');
     const handsCountDisplay = document.getElementById('handsCount');
     const wheelCountDisplay = document.getElementById('wheelCount');
-    const lookCountDisplay = document.getElementById('lookCount'); // <-- (เพิ่ม)
+    const lookCountDisplay = document.getElementById('lookCount'); 
 
     const btnTogglePose = document.getElementById('btnTogglePose');
     const poseDisplay = document.getElementById('poseDisplay');
@@ -176,25 +178,25 @@
     const pitchValue = document.getElementById('pitchValue');
     const yawValue = document.getElementById('yawValue');
 
-    // === (แก้ไข) Config ===
+    // === Config ===
     const THRESH = {
-      EYE_CLOSED: 0.12,
+      EYE_CLOSED: 0.10, // <-- (แก้ไข) ปรับค่าสำหรับตาตี่ (ลองเริ่มที่ 0.10)
       YAWN: 0.25,
       EYE_CLOSED_SEC: 0.8,
       YAWN_SEC: 1.5,
       BOTH_HANDS_UP_SEC: 2,
-      PITCH_DOWN: 5,     // ก้มหน้าที่ 5 องศา
-      PITCH_UP: -15,   // เงยหน้าที่ -15 องศา
-      YAW_LEFT: 12,    // หันซ้ายที่ 12 องศา
-      YAW_RIGHT: -12,  // หันขวาที่ -12 องศา
+      PITCH_DOWN: 5,     
+      PITCH_UP: -15,   
+      YAW_LEFT: 10,    
+      YAW_RIGHT: -12,  
       PHONE_SCORE: 0.55,
       WHEEL_OFF_ALERT_SEC: 3.0,
       FACE_LOST_ALERT_SEC: 2.0,
       PHONE_HAND_DISTANCE: 0.3,
       PHONE_LOST_GRACE_SEC: 1.5,
-      HAND_FACE_DISTANCE: 0.4,
-      YAW_ALERT_SEC: 1.5,     // <-- (เพิ่ม) หน่วงเวลาหันซ้าย/ขวา 1.5 วิ
-      PITCH_DOWN_SEC: 1.5   // <-- (เพิ่ม) หน่วงเวลาก้มหน้า 1.5 วิ
+      // HAND_FACE_DISTANCE: 0.4, // <-- (ลบออก) ไม่ใช้เงื่อนไขนี้แล้ว
+      YAW_ALERT_SEC: 1.5,     
+      PITCH_DOWN_SEC: 1.5   
     };
     
     // === State
@@ -210,17 +212,15 @@
     let pitchEMA=null, yawEMA=null, rollEMA=null;
     let eyeStart=null, yawnStart=null, handsStart=null, lastPhoneDetections = [];
     
-    // === (เพิ่ม) State ตัวจับเวลา Pose ===
     let yawLeftStart = null, yawRightStart = null, pitchDownStart = null;
     let hasAlertedYawLeft = false, hasAlertedYawRight = false, hasAlertedPitchDown = false;
-    // ===================================
     
     let faceLastSeen = null;
 
     let frameCount = 0;
     const poseGain = 1.2, yawGain = 2.0, pitchGain = 1.4;
     
-    let blinkCount = 0, eyesCount = 0, yawnCount = 0, phoneCount = 0, handsCount = 0, wheelCount = 0, lookCount = 0; // <-- (เพิ่ม) lookCount
+    let blinkCount = 0, eyesCount = 0, yawnCount = 0, phoneCount = 0, handsCount = 0, wheelCount = 0, lookCount = 0; 
     
     let isEyeClosed = false;
     let hasAlertedEyes = false, hasAlertedYawn = false, hasAlertedPhone = false, hasAlertedHands = false, hasAlertedWheel = false;
@@ -396,7 +396,6 @@
       if (v.yawAlertText) {
         const key = v.yawAlertText === 'หันซ้าย' ? 'yawLeft' : 'yawRight';
         mainAlerts.push(alertMessages[key].main);
-        // (แก้ไข) เปลี่ยนระดับการเตือนหันหน้าเป็น warning (สีเหลือง)
         if (alertLevel === 'none' || alertLevel === 'success') alertLevel = 'warning';
       }
 
@@ -442,7 +441,6 @@
       }
       
       const red = '#dc2626', yellow = '#f59e0b', green = '#10b981', defaultColor = '';
-      // (แก้ไข) ปรับสีไอคอนตา ให้รวมการหันหน้า (warning) ด้วย
       eyesStatusIcon.style.backgroundColor = (v.eyeAlert || (v.pitchAlertText && alertLevel === 'error')) ? red : (v.yawAlertText ? yellow : defaultColor);
       if (v.yawnAlert) {
         if (yawnCount >= 3) { eyesStatusIcon.style.backgroundColor = red; }
@@ -459,8 +457,8 @@
         { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone }, 
         { flag: v.handsAlert,     id: 'WHEEL', el: sndWheel }, 
         { flag: v.wheelAlert,     id: 'WHEEL', el: sndWheel },
-        { flag: v.pitchAlertText, id: 'LOOK',  el: sndLook  }, // ก้ม/เงย
-        { flag: v.yawAlertText,   id: 'LOOK',  el: sndLook  }, // หันซ้าย/ขวา
+        { flag: v.pitchAlertText, id: 'LOOK',  el: sndLook  }, 
+        { flag: v.yawAlertText,   id: 'LOOK',  el: sndLook  },
         { flag: v.yawnAlert,      id: 'YAWN',  el: sndYawn  }
       ];
 
@@ -494,7 +492,7 @@
       phoneCountDisplay.textContent = phoneCount;
       handsCountDisplay.textContent = handsCount;
       wheelCountDisplay.textContent = wheelCount;
-      lookCountDisplay.textContent = lookCount; // <-- (เพิ่ม) อัปเดต UI
+      lookCountDisplay.textContent = lookCount; 
     }
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
@@ -555,59 +553,49 @@
               yawValue.textContent = finalYaw.toFixed(1);
             }
 
-            // ========================================================
-            // === (แก้ไข) ตรรกะการตรวจจับ Pose (หัน/ก้ม) ===
-            // ========================================================
-
             // --- YAW (หันซ้าย/ขวา) ---
-            if (finalYaw > THRESH.YAW_LEFT) { // --- หันซ้าย ---
-                if (yawLeftStart === null) yawLeftStart = now; // เริ่มจับเวลา
-                yawRightStart = null; hasAlertedYawRight = false; // รีเซ็ตฝั่งขวา
+            if (finalYaw > THRESH.YAW_LEFT) { 
+                if (yawLeftStart === null) yawLeftStart = now; 
+                yawRightStart = null; hasAlertedYawRight = false; 
 
-                // ถ้าหันค้างนานเกินกำหนด
                 if ((now - yawLeftStart) / 1000 > THRESH.YAW_ALERT_SEC) {
                     yawAlertText = 'หันซ้าย';
                     if (!hasAlertedYawLeft) { lookCount++; hasAlertedYawLeft = true; }
                 }
-            } else if (finalYaw < THRESH.YAW_RIGHT) { // --- หันขวา ---
-                if (yawRightStart === null) yawRightStart = now; // เริ่มจับเวลา
-                yawLeftStart = null; hasAlertedYawLeft = false; // รีเซ็ตฝั่งซ้าย
+            } else if (finalYaw < THRESH.YAW_RIGHT) { 
+                if (yawRightStart === null) yawRightStart = now; 
+                yawLeftStart = null; hasAlertedYawLeft = false; 
 
-                // ถ้าหันค้างนานเกินกำหนด
                 if ((now - yawRightStart) / 1000 > THRESH.YAW_ALERT_SEC) {
                     yawAlertText = 'หันขวา';
                     if (!hasAlertedYawRight) { lookCount++; hasAlertedYawRight = true; }
                 }
-            } else { // --- มองตรง (Yaw) ---
+            } else { 
                 yawLeftStart = null; hasAlertedYawLeft = false;
                 yawRightStart = null; hasAlertedYawRight = false;
             }
 
             // --- PITCH (ก้ม/เงย) ---
-            if (finalPitch > THRESH.PITCH_DOWN) { // --- ก้มหน้า ---
-                if (pitchDownStart === null) pitchDownStart = now; // เริ่มจับเวลา
+            if (finalPitch > THRESH.PITCH_DOWN) { 
+                if (pitchDownStart === null) pitchDownStart = now; 
 
-                // ถ้าก้มค้างนานเกินกำหนด
                 if ((now - pitchDownStart) / 1000 > THRESH.PITCH_DOWN_SEC) {
                     pitchAlertText = 'ก้มหน้า';
                     if (!hasAlertedPitchDown) { lookCount++; hasAlertedPitchDown = true; }
                 }
-            } else if (finalPitch < THRESH.PITCH_UP) { // --- เงยหน้า ---
-                pitchAlertText = 'เงยหน้า'; // (เงยหน้า ให้เตือนทันที)
-                pitchDownStart = null; hasAlertedPitchDown = false; // รีเซ็ตตัวจับเวลาก้ม
-                if (!hasAlertedPitchDown) { lookCount++; hasAlertedPitchDown = true; } // นับเลย
-            } else { // --- มองตรง (Pitch) ---
+            } else if (finalPitch < THRESH.PITCH_UP) { 
+                pitchAlertText = 'เงยหน้า'; 
+                pitchDownStart = null; hasAlertedPitchDown = false; 
+                if (!hasAlertedPitchDown) { lookCount++; hasAlertedPitchDown = true; } 
+            } else { 
                 pitchDownStart = null; hasAlertedPitchDown = false;
             }
-            // ========================================================
-            // === จบส่วนที่แก้ไข ====================================
-            // ========================================================
 
           }
-          // ... (โค้ดส่วน EAR, MAR ไม่มีการเปลี่ยนแปลง) ...
           const EAR = ear(face, EYE_L)*0.5 + ear(face, EYE_R)*0.5;
           const MAR = marSimple(face);
-          if (EAR < THRESH.EYE_CLOSED) {
+          // (แก้ไข) ใช้ THRESH.EYE_CLOSED ที่ปรับค่าแล้ว
+          if (EAR < THRESH.EYE_CLOSED) { 
             isEyeClosed = true;
             if(eyeStart==null) { eyeStart=now; } 
             else if((now-eyeStart)/1000>THRESH.EYE_CLOSED_SEC) {
@@ -632,7 +620,6 @@
           faceLost = (t - faceLastSeen > THRESH.FACE_LOST_ALERT_SEC);
         }
 
-        // ... (โค้ดส่วน handsOnScreen, bothHandsUp ไม่มีการเปลี่ยนแปลง) ...
         const handsOnScreen = resH?.landmarks?.length || 0;
         let bothHandsUp = false;
         if (handsOnScreen >= 2 && face) {
@@ -653,7 +640,7 @@
           handsStart = null; hasAlertedHands = false;
         }
 
-        // ... (โค้ดส่วน Phone Alert ไม่มีการเปลี่ยนแปลง) ...
+        // --- ตรวจจับโทรศัพท์ ---
         let phoneBoxes = []; 
         if (phoneReady && cocoSsdModel) {
           const predictions = await cocoSsdModel.detect(video);
@@ -666,28 +653,33 @@
             }
           }
         }
+
         let isPhoneDetectedThisFrame = false;
-        if (phoneBoxes?.length && resH?.landmarks?.length && face) {
-          const nosePos = face[1];
+        // (แก้ไข) ลบเงื่อนไข face ออก เช็คแค่ มือ กับ โทรศัพท์ ก็พอ
+        if (phoneBoxes?.length && resH?.landmarks?.length) { 
+          // const nosePos = face[1]; // ไม่ใช้แล้ว
           for (const box of phoneBoxes) {
             const phoneCenter = { x: (box.xMin + box.xMax) / 2 / video.videoWidth, y: (box.yMin + box.yMax) / 2 / video.videoHeight };
             for (const handLm of resH.landmarks) {
               const wristPos = handLm[0];
               const distHandPhone = getDistance(phoneCenter, wristPos);
               if (distHandPhone < THRESH.PHONE_HAND_DISTANCE) {
-                const distHandFace = getDistance(wristPos, nosePos);
-                if (distHandFace < THRESH.HAND_FACE_DISTANCE) {
-                  isPhoneDetectedThisFrame = true;
-                  break; 
-                }
+                // (ลบออก) ไม่ต้องเช็คระยะห่างจากหน้า
+                // const distHandFace = getDistance(wristPos, nosePos);
+                // if (distHandFace < THRESH.HAND_FACE_DISTANCE) { 
+                isPhoneDetectedThisFrame = true;
+                break; 
+                // }
               }
             }
             if (isPhoneDetectedThisFrame) break;
           }
         }
+        
         if (isPhoneDetectedThisFrame) {
           phoneLastSeenTime = now;
         }
+
         if (phoneLastSeenTime !== null && (now - phoneLastSeenTime) / 1000 < THRESH.PHONE_LOST_GRACE_SEC) {
           phone = true;
           if (!hasAlertedPhone) { phoneCount++; hasAlertedPhone = true; }
@@ -698,7 +690,7 @@
         }
         phoneAlert = phone; 
 
-        // ... (โค้ดส่วน Wheel Alert ไม่มีการเปลี่ยนแปลง) ...
+        // --- ตรวจจับพวงมาลัย ---
         if (!handsAlert && !phoneAlert) { 
           if (handsOnScreen === 0) {
             wheelOffStart = null; 
@@ -774,11 +766,9 @@
             return;
           }
           isRunning = true; btnToggle.textContent='Stop';
-          // (เพิ่ม) รีเซ็ตตัวนับ
           blinkCount = 0; eyesCount = 0; yawnCount = 0; phoneCount = 0; handsCount = 0; wheelCount = 0; lookCount = 0;
           hasAlertedEyes = false; hasAlertedYawn = false; hasAlertedPhone = false; hasAlertedHands = false; hasAlertedWheel = false;
           hasAlertedYawLeft = false; hasAlertedYawRight = false; hasAlertedPitchDown = false;
-          // ========================
           scheduleNext(loop);
         }catch(err){ 
           console.error(err);
