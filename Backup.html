@@ -209,8 +209,10 @@
         return true;
       } catch (error) {
         console.error('SOS Email FAILED...', error);
-        // Alert เฉพาะ Manual
-        if (!isAuto) alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
+        // Alert เฉพาะ Manual หรือถ้ามี error จริงๆ
+        if (!isAuto || (error && error.status !== 0)) { // Don't alert for potential network errors during auto-send maybe?
+           alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
+        }
         return false;
       }
     }
@@ -261,38 +263,77 @@
       if(v.faceLost){alerts.push(alertMessages.faceLost.m);lvl='error';}
       if(v.yawnAlert){alerts.push(alertMessages.yawnAlert.m);if(lvl==='none')lvl='success';}
 
-      // --- แก้ไข: ตรรกะ Auto SOS (ไม่ Alert ถ้า GPS ไม่พร้อม) ---
+      // --- แก้ไข: ตรรกะ Auto SOS (ตั้ง flag ก่อนส่ง) ---
       if (v.takeBreakAlert && !autoSosSent) {
-        console.log("Score reached 0. Attempting Auto SOS...");
-        // Pass true for automatic trigger
-        sendSOSLogic(true).then(success => {
-          if (success) {
-            autoSosSent = true; // Set flag ONLY if successful
-            console.log("Auto SOS sent successfully.");
-             if(alertSubTextEl.textContent) { alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)"; }
-             else { alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)"; }
-             if(!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) {
-                alertTextEl.textContent = alertMessages.takeBreak.m;
-                alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)";
-                alertCard.className = 'card error';
-                alertBox.classList.add('show');
-             } else {
-                 alertCard.classList.remove('success', 'warning');
-                 alertCard.classList.add('error');
-             }
-          } else {
-             console.warn("Auto SOS failed (likely waiting for GPS). Will retry on next update.");
-             // Do NOT set autoSosSent = true, so it will retry
-          }
-        });
+        console.log("Score reached 0. Setting autoSosSent flag and attempting Auto SOS...");
+
+        // ---!!! ตั้งค่าสถานะทันที ป้องกันการส่งซ้ำ !!!---
+        autoSosSent = true;
+        // ---------------------------------------------
+
+        // ส่ง Email (ใช้ async/await เพื่อรอผล แต่ไม่ block UI หลัก)
+        (async () => {
+            const success = await sendSOSLogic(true); // Pass true for automatic trigger
+            if (success) {
+                console.log("Auto SOS email potentially sent successfully.");
+                // อัปเดต UI เพื่อบอกว่าส่งแล้ว (ถ้าต้องการ)
+                if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
+                    alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
+                } else if (!alertSubTextEl.textContent) {
+                    alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)";
+                }
+                // ทำให้แน่ใจว่า Alert แสดงข้อความที่ถูกต้อง
+                if(!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) {
+                    alertTextEl.textContent = alertMessages.takeBreak.m;
+                    alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)";
+                    alertCard.className = 'card error';
+                    alertBox.classList.add('show');
+                } else {
+                    alertCard.classList.remove('success', 'warning');
+                    alertCard.classList.add('error');
+                    // อัปเดต subtext ถ้ายังไม่มี
+                    if (!alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
+                         alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
+                    }
+                }
+            } else {
+                console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry automatically in this session.");
+                // คืนค่า autoSosSent = false ถ้าต้องการให้ลองใหม่
+                // autoSosSent = false;
+
+                // แจ้งผู้ใช้ว่า Auto SOS ล้มเหลว (ถ้า GPS ไม่พร้อม จะมี alert จาก sendSOSLogic อยู่แล้ว)
+                if (currentCoords) { // ถ้า GPS พร้อม แต่ส่งไม่สำเร็จ
+                    if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติล้มเหลว!)")) {
+                        alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติล้มเหลว!)";
+                    } else if (!alertSubTextEl.textContent) {
+                        alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติล้มเหลว!)";
+                    }
+                     // ทำให้แน่ใจว่า Alert แสดง
+                    if (!alertBox.classList.contains('show')) {
+                        alertTextEl.textContent = alertMessages.takeBreak.m;
+                        alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติล้มเหลว!)";
+                        alertCard.className = 'card error';
+                        alertBox.classList.add('show');
+                    }
+                }
+                 // ถ้าส่งไม่สำเร็จ (ไม่ว่าจะเพราะ GPS หรือ EmailJS) ให้คืนค่า autoSosSent เป็น false เพื่อลองใหม่รอบหน้า
+                 autoSosSent = false;
+            }
+        })(); // Immediately invoke the async function
       }
+      // --- สิ้นสุด Auto SOS ---
+
 
       if(alerts.length > 0){
         for(const k of priority){ if(alertMessages[k] && alerts.includes(alertMessages[k].m)){ sub = alertMessages[k].s; break; } }
         alertTextEl.textContent = alerts.join(' / ');
         let currentSubText = sub;
-        if (v.takeBreakAlert && autoSosSent) { currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)"; }
+        // แก้ไข: แสดงสถานะ SOS ต่อท้าย sub text เสมอถ้ามีการส่งแล้ว
+        if (v.takeBreakAlert && autoSosSent) {
+            currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
+        }
         alertSubTextEl.textContent = currentSubText;
+
         alertCard.className = `card ${lvl !== 'none' ? lvl : ''}`;
         alertBox.classList.add('show');
       } else {
@@ -353,7 +394,6 @@
       }
     });
 
-    // --- แก้ไข: Listener ปุ่ม SOS (ใช้ async/await, ผ่าน isAuto=false) ---
     btnSos.addEventListener('click', async () => {
       btnSos.disabled = true;
       btnSos.textContent = 'กำลังส่ง...';
