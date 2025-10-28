@@ -86,12 +86,12 @@
       text-align: center; /* Center text within the card */
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       backdrop-filter: blur(8px);
-      /* Default background for light mode when no specific type */
+      /* Default background for light mode (used when no success/error/warning) */
       background-color: rgba(226, 232, 240, 0.85); /* slate-200 */
       border: 1px solid rgba(0,0,0,0.05);
     }
     .dark .alert-popup .card {
-      /* Default background for dark mode when no specific type */
+      /* Default background for dark mode */
       background-color: rgba(30, 41, 59, 0.85); /* slate-800 */
       border: 1px solid rgba(255,255,255,0.1);
     }
@@ -100,19 +100,26 @@
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
 
-    /* Text on colored backgrounds */
+    /* Text on colored backgrounds (Success, Error, Warning) */
     .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2,
     .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
-        color: white;
+        color: white; /* Force ALL text to white */
+        opacity: 1; /* Ensure full opacity */
     }
-    .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
-        color: rgba(255, 255, 255, 0.9);
+    /* Optional: Slightly dim subtext */
+    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText {
+        opacity: 0.9;
     }
-    .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
-      color: rgba(255, 255, 255, 0.7);
-    }
+     /* Style size/margin/opacity for last paragraph on colored backgrounds */
+     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
+       color: white; /* Ensure it stays white */
+       opacity: 0.85; /* Adjust opacity as needed */
+       font-size: 0.875rem;
+       margin-top: 0.5rem;
+     }
 
-     /* Text on default backgrounds */
+
+     /* Text on default backgrounds (Light/Dark mode, no specific type) */
     .alert-popup .card h2 {
       font-size: 1.1rem;
       font-weight: 600;
@@ -121,18 +128,25 @@
     }
     .dark .alert-popup .card h2 { color: #f1f5f9; /* slate-100 */}
 
-    .alert-popup .card p {
+    .alert-popup .card p { /* Styles for p tags on default bg */
       color: #475569; /* slate-600 */
       font-size: 0.875rem;
     }
     .dark .alert-popup .card p { color: #cbd5e1; /* slate-300 */}
 
+    /* Size/margin/color for last paragraph on default bg */
     .alert-popup .card p:last-child {
       font-size: 0.75rem;
       margin-top: 0.4rem;
       color: #64748b; /* slate-500 */
     }
-    .dark .alert-popup .card p:last-child { color: #94a3b8; /* slate-400 */}
+    /* CORRECTION: Force last P white in dark mode default card */
+    .dark .alert-popup .card p:last-child {
+       color: #cbd5e1; /* Revert back to lighter gray for default dark card */
+       /* If you want it pure white always, uncomment the line below */
+       /* color: white; */
+       opacity: 0.8;
+    }
 
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -199,10 +213,10 @@
     </div>
 
     <div id="alertBox" class="alert-popup">
-      <div id="alertCard" class="card"> <h2 id="alertText"></h2>
+      <div id="alertCard" class="card">
+        <h2 id="alertText"></h2>
         <p id="alertSubText" class="mt-1"></p>
-        <p class="text-white">กรุณาขับขี่ปลอดภัยด้วยนะครับ</p>
-      </div>
+        <p class="mt-4 final-safety-text">กรุณาขับขี่ปลอดภัยด้วยนะครับ</p> </div>
     </div>
 
     <section class="action-bar flex gap-2">
@@ -221,7 +235,7 @@
   <script type="module">
     import { FaceLandmarker, HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
-    // === Elements
+    // === Elements ===
     const video = document.getElementById('video');
     const canvas = document.getElementById('overlay');
     const ctx = canvas.getContext('2d');
