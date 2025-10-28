@@ -35,11 +35,11 @@
     .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
     .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; }
     .indicator-score-item span:last-child { font-weight: 700; }
-    .alert-popup { position: fixed; inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; z-index: 70; display: none; }
-    .dark .alert-popup { background: none; }
-    .alert-popup.show { display: block; }
-    .alert-popup .card { padding: 0.75rem 1.25rem; border-radius: 0.75rem; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); backdrop-filter: blur(8px); background-color: rgba(226, 232, 240, 0.85); border: 1px solid rgba(0,0,0,0.05); }
-    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255,255,255,0.1); }
+    .alert-popup { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+    .dark .alert-popup { background-color: rgba(0, 0, 0, 0.75); }
+    .alert-popup.show { display: flex; }
+    .alert-popup .card { width: 100%; max-width: 400px; padding: 1.25rem 1.5rem; border-radius: 0.75rem; text-align: center; box-shadow: 0 10px 15px rgba(0,0,0,0.1); background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0,0,0,0.05); }
+    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); }
     .alert-popup .card.success { background-color: #10b981; border: none; }
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
@@ -52,7 +52,7 @@
     .dark .alert-popup .card p { color: #cbd5e1; }
     .alert-popup .card p:last-child { font-size: 0.75rem; margin-top: 0.4rem; color: #64748b; }
     .dark .alert-popup .card p:last-child { color: #cbd5e1; opacity: 0.8; }
-    #setupModal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); }
+    #setupModal { position: fixed; inset: 0; z-index: 110; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); }
     #setupModal .card { width: 100%; max-width: 400px; padding: 1.5rem 2rem; border-radius: 0.75rem; background-color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
     .dark #setupModal .card { background-color: #1e293b; }
     #setupModal input[type="email"] { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: 1px solid #cbd5e1; background-color: white; color: #1e293b; }
@@ -172,28 +172,26 @@
       }
     }
 
-    // --- ฟังก์ชันสำหรับ Logic การส่ง SOS (แก้ไข) ---
-    async function sendSOSLogic(isAuto = false) { // <-- เพิ่ม isAuto
+    // --- ฟังก์ชันสำหรับ Logic การส่ง SOS (แก้ไข - เอา alert ตอนล้มเหลวออก) ---
+    async function sendSOSLogic(isAuto = false) {
       console.log(`sendSOSLogic called (isAuto: ${isAuto}). Current Coords:`, currentCoords, "SOS Email:", sosEmail);
       if (!sosEmail) {
         console.error("SOS Error: ไม่พบอีเมลผู้ติดต่อฉุกเฉิน!");
-        if (!isAuto) alert("SOS ล้มเหลว: ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ!"); // Alert เฉพาะ Manual
-        return false;
+        return { success: false, error: "ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ" };
       }
       if (!currentCoords) {
         console.warn("SOS Warning: ยังไม่มีข้อมูล GPS ล่าสุด...");
-        if (!isAuto) alert("ยังไม่มีข้อมูล GPS ล่าสุด กรุณาลองอีกครั้ง หรือตรวจสอบสัญญาณ GPS"); // Alert เฉพาะ Manual
-        return false;
+        // ไม่ต้อง Alert ถ้าเป็น Auto
+        // if (!isAuto) alert("ยังไม่มีข้อมูล GPS ล่าสุด กรุณาลองอีกครั้ง หรือตรวจสอบสัญญาณ GPS");
+        return { success: false, error: "ยังไม่มีข้อมูล GPS" };
       }
 
       const { lat, lon } = currentCoords;
-      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`; // <-- Link Format ที่ถูกต้อง
+      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
       const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ';
 
       const templateParams = {
-        // ---!!! เอา Comment ออก !!!---
         to_email: sosEmail,
-        // -------------------------
         map_link: mapLink,
         accuracy: accuracy
       };
@@ -206,14 +204,10 @@
       try {
         const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
         console.log('SOS Email SUCCESS!', response.status, response.text);
-        return true;
+        return { success: true };
       } catch (error) {
         console.error('SOS Email FAILED...', error);
-        // Alert เฉพาะ Manual หรือถ้ามี error จริงๆ
-        if (!isAuto || (error && error.status !== 0)) { // Don't alert for potential network errors during auto-send maybe?
-           alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
-        }
-        return false;
+        return { success: false, error: error }; // ส่ง error กลับไปให้ Listener
       }
     }
 
@@ -263,43 +257,41 @@
       if(v.faceLost){alerts.push(alertMessages.faceLost.m);lvl='error';}
       if(v.yawnAlert){alerts.push(alertMessages.yawnAlert.m);if(lvl==='none')lvl='success';}
 
-      // --- แก้ไข: ตรรกะ Auto SOS (ตั้ง flag ก่อนส่ง) ---
+      // --- แก้ไข: ตรรกะ Auto SOS (ตั้ง flag ก่อนส่ง, ไม่รีเซ็ตถ้าพลาด) ---
       if (v.takeBreakAlert && !autoSosSent) {
         console.log("Score reached 0. Setting autoSosSent flag and attempting Auto SOS...");
+        
+        // ตั้งค่าสถานะทันที ป้องกันการส่งซ้ำ
+        autoSosSent = true; 
 
-        // ---!!! ตั้งค่าสถานะทันที ป้องกันการส่งซ้ำ !!!---
-        autoSosSent = true;
-        // ---------------------------------------------
-
-        // ส่ง Email (ใช้ async/await เพื่อรอผล แต่ไม่ block UI หลัก)
-        (async () => {
-            const success = await sendSOSLogic(true); // Pass true for automatic trigger
-            if (success) {
+        // ส่ง Email (ใช้ async/await)
+        (async () => { 
+            const result = await sendSOSLogic(true); // Pass true for automatic trigger
+            if (result.success) {
                 console.log("Auto SOS email potentially sent successfully.");
-                // อัปเดต UI เพื่อบอกว่าส่งแล้ว (ถ้าต้องการ)
-                if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
+                // Update UI (optional)
+                if (alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) { 
                     alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
                 } else if (!alertSubTextEl.textContent) {
                     alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)";
                 }
-                // ทำให้แน่ใจว่า Alert แสดงข้อความที่ถูกต้อง
-                if(!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) {
-                    alertTextEl.textContent = alertMessages.takeBreak.m;
-                    alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)";
-                    alertCard.className = 'card error';
-                    alertBox.classList.add('show');
-                } else {
-                    alertCard.classList.remove('success', 'warning');
-                    alertCard.classList.add('error');
-                    // อัปเดต subtext ถ้ายังไม่มี
-                    if (!alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
-                         alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
-                    }
-                }
+                // Ensure correct alert is shown
+                if (!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) {
+                     alertTextEl.textContent = alertMessages.takeBreak.m;
+                     alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)";
+                     alertCard.className = 'card error';
+                     alertBox.classList.add('show');
+                 } else {
+                     alertCard.classList.remove('success', 'warning');
+                     alertCard.classList.add('error');
+                     if (!alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
+                          alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
+                     }
+                 }
             } else {
-                console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry automatically in this session.");
-                // คืนค่า autoSosSent = false ถ้าต้องการให้ลองใหม่
-                // autoSosSent = false;
+                console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry automatically until score recovers or Stop is pressed.");
+                // ---!!! ไม่ต้องคืนค่า autoSosSent = false ที่นี่ !!!---
+                // autoSosSent = false; 
 
                 // แจ้งผู้ใช้ว่า Auto SOS ล้มเหลว (ถ้า GPS ไม่พร้อม จะมี alert จาก sendSOSLogic อยู่แล้ว)
                 if (currentCoords) { // ถ้า GPS พร้อม แต่ส่งไม่สำเร็จ
@@ -316,31 +308,56 @@
                         alertBox.classList.add('show');
                     }
                 }
-                 // ถ้าส่งไม่สำเร็จ (ไม่ว่าจะเพราะ GPS หรือ EmailJS) ให้คืนค่า autoSosSent เป็น false เพื่อลองใหม่รอบหน้า
-                 autoSosSent = false;
             }
         })(); // Immediately invoke the async function
       }
       // --- สิ้นสุด Auto SOS ---
 
 
-      if(alerts.length > 0){
-        for(const k of priority){ if(alertMessages[k] && alerts.includes(alertMessages[k].m)){ sub = alertMessages[k].s; break; } }
-        alertTextEl.textContent = alerts.join(' / ');
+      // --- แก้ไข: การแสดงผล Alert Box ---
+      // เช็คก่อนว่ามี alert อื่นๆ ที่ไม่ใช่ SOS สำเร็จ/ล้มเหลว หรือไม่
+      const nonSosAlerts = alerts.filter(a => a !== 'ส่ง SOS สำเร็จ!' && a !== 'ส่ง SOS ล้มเหลว!');
+
+      if (nonSosAlerts.length > 0) {
+        // หา sub text และ level จาก priority ของ non-SOS alerts
+        for (const k of priority) {
+          if (alertMessages[k] && nonSosAlerts.includes(alertMessages[k].m)) {
+            sub = alertMessages[k].s;
+            // กำหนด level ตาม priority, error สำคัญสุด
+            if (k === 'takeBreak' || k === 'eyeAlert' || k === 'handsAlert' || k === 'wheelAlert' || k === 'phoneAlert' || k === 'pitchDown' || k === 'pitchUp' || k === 'faceLost') {
+                lvl = 'error';
+            } else if (k === 'yawLeft' || k === 'yawRight') {
+                if (lvl !== 'error') lvl = 'warning';
+            } else if (k === 'yawnAlert') {
+                 if (lvl === 'none') lvl = 'success'; // Yawn เป็น success? อาจจะปรับเป็น warning
+            }
+            break; // เจอ priority สูงสุดแล้ว ออก loop
+          }
+        }
+        alertTextEl.textContent = nonSosAlerts.join(' / ');
         let currentSubText = sub;
-        // แก้ไข: แสดงสถานะ SOS ต่อท้าย sub text เสมอถ้ามีการส่งแล้ว
-        if (v.takeBreakAlert && autoSosSent) {
-            currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
+        // เพิ่มสถานะ Auto SOS ถ้ามี
+        if (v.takeBreakAlert && autoSosSent && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) {
+             currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
+        } else if (v.takeBreakAlert && !autoSosSent && currentCoords && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) {
+             // currentSubText += " (ส่ง SOS อัตโนมัติล้มเหลว!)"; // อาจจะแสดงหรือไม่
         }
         alertSubTextEl.textContent = currentSubText;
 
         alertCard.className = `card ${lvl !== 'none' ? lvl : ''}`;
-        alertBox.classList.add('show');
-      } else {
-         alertBox.classList.remove('show');
-         alertTextEl.textContent = '';
-         alertSubTextEl.textContent = '';
+        if (!alertBox.classList.contains('show')) {
+            alertBox.classList.add('show');
+        }
+      } else if (!alertBox.classList.contains('show')) {
+        // ถ้าไม่มี non-SOS alerts และ alertBox ยังไม่แสดง (เช่นกรณี SOS สำเร็จ/ล้มเหลวอย่างเดียว)
+        // ไม่ต้องทำอะไรที่นี่ เพราะ Listener ของ btnSos จะจัดการแสดง alertBox เอง
+      } else if (alertBox.classList.contains('show') && alertTextEl.textContent !== 'ส่ง SOS สำเร็จ!' && alertTextEl.textContent !== 'ส่ง SOS ล้มเหลว!') {
+        // ถ้าไม่มี non-SOS alerts แต่ alertBox แสดงอยู่ (และไม่ใช่ alert SOS) ให้ซ่อน
+        alertBox.classList.remove('show');
+        alertTextEl.textContent = '';
+        alertSubTextEl.textContent = '';
       }
+      // --- สิ้นสุดการแก้ไข Alert Box ---
 
 
       const r='#dc2626',y='#f59e0b',g='#10b981',d='';
@@ -394,11 +411,42 @@
       }
     });
 
+    // --- แก้ไข: Listener ปุ่ม SOS (ใช้ alertBox และ setTimeout) ---
     btnSos.addEventListener('click', async () => {
       btnSos.disabled = true;
       btnSos.textContent = 'กำลังส่ง...';
-      const success = await sendSOSLogic(false); // <-- ส่ง false สำหรับ Manual
-      if(success){ alert(`ส่งแจ้งเตือน SOS ไปยัง ${sosEmail} สำเร็จ!`); }
+      const result = await sendSOSLogic(false); // <-- ส่ง false สำหรับ Manual
+
+      // ใช้ alertBox แสดงผล
+      if(result.success){
+         alertTextEl.textContent = 'ส่ง SOS สำเร็จ!';
+         alertSubTextEl.textContent = `ส่งแจ้งเตือนไปยัง ${sosEmail} แล้ว กรุณาขับขี่ปลอดภัยด้วยนะครับ`;
+         alertCard.className = 'card success';
+         alertBox.classList.add('show');
+         // ซ่อน alert box หลังจาก 5 วินาที
+         setTimeout(() => {
+             if (alertTextEl.textContent === 'ส่ง SOS สำเร็จ!') {
+                 alertBox.classList.remove('show');
+             }
+         }, 1500);
+      } else {
+         alertTextEl.textContent = 'ส่ง SOS ล้มเหลว!';
+         alertSubTextEl.textContent = result.error ? `${result.error}` : 'กรุณาตรวจสอบ Console';
+         if (result.error === "ยังไม่มีข้อมูล GPS") {
+             alertSubTextEl.textContent = "ยังไม่มีข้อมูล GPS ล่าสุด กรุณาลองอีกครั้ง";
+         } else if (result.error && typeof result.error === 'object') {
+              alertSubTextEl.textContent = `Error: ${result.error.text || JSON.stringify(result.error)}`;
+         }
+         alertCard.className = 'card error';
+         alertBox.classList.add('show');
+         // ซ่อน alert box หลังจาก 5 วินาที
+         setTimeout(() => {
+             if (alertTextEl.textContent === 'ส่ง SOS ล้มเหลว!') {
+                alertBox.classList.remove('show');
+             }
+         }, 5000);
+      }
+
       // เปิดปุ่ม SOS คืนเสมอ
       btnSos.disabled = false;
       btnSos.textContent = 'SOS';
@@ -406,8 +454,8 @@
 
     // --- แก้ไข: Listener ปุ่ม Calibrate (กดได้ตลอด) ---
     btnCalib.addEventListener('click', async ()=>{
-      btnCalib.disabled = true; // ปิดปุ่มชั่วคราว
-      btnCalib.textContent = 'Calibrating...'; // เปลี่ยนข้อความชั่วคราว
+      btnCalib.disabled = true;
+      btnCalib.textContent = 'Calibrating...';
       alertBox.classList.remove('show');
       try{
         if(!video.srcObject)await startCam();
@@ -429,23 +477,22 @@
         }
         if(!got){
           alertTextEl.textContent='ไม่พบหน้า • ขยับให้อยู่กลางภาพ/เพิ่มแสง';
-          alertCard.classList.remove('success'); alertCard.classList.add('error');
+          alertCard.className = 'card error'; // Use className
           alertBox.classList.add('show');
         } else {
           pitchOffset=lastP.pitch; yawOffset=lastP.yaw;
           calibrated=true;
-          if (!isRunning) btnToggle.disabled = false; // เปิดปุ่ม Start ถ้ายังไม่เริ่ม
+          if (!isRunning) btnToggle.disabled = false;
           canvas.style.outline='3px solid #10b981';
           setTimeout(()=>{canvas.style.outline='none';},520);
           alertTextEl.textContent='Calibrated! พร้อมเริ่มใช้งาน';
-          alertCard.classList.remove('error'); alertCard.classList.add('success');
+          alertCard.className = 'card success'; // Use className
           alertBox.classList.add('show');
           setTimeout(()=>alertBox.classList.remove('show'),2200);
         }
       } finally {
-        // เปิดปุ่ม Calib คืนเสมอ
         btnCalib.disabled = false;
-        btnCalib.textContent = 'Calibrate'; // คืนข้อความเดิม
+        btnCalib.textContent = 'Calibrate';
       }
     });
 
@@ -461,17 +508,13 @@
           btnToggle.textContent='Stop';
           // btnCalib.disabled = true; // <-- เอาออก
           // btnSos.disabled = true; // <-- เอาออก
-          btnTogglePose.disabled = true; // ปิดปุ่ม Pose ขณะทำงาน
+          btnTogglePose.disabled = true;
           driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
-          // watchSpeed(); // <-- ย้ายไปแล้ว
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
           scheduleNext(loop);
         }catch(e){
-          console.error(e); alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต'; alertCard.classList.remove('success'); alertCard.classList.add('error'); alertBox.classList.add('show');
-          // คืนปุ่ม Calib/SOS/Pose ถ้าเริ่มไม่สำเร็จ
-          btnCalib.disabled=false;
-          btnSos.disabled = false;
-          btnTogglePose.disabled = false;
+          console.error(e); alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต'; alertCard.className = 'card error'; alertBox.classList.add('show');
+          btnCalib.disabled=false; btnSos.disabled = false; btnTogglePose.disabled = false;
         }
       } else {
         isRunning=false;
@@ -483,13 +526,10 @@
         speedDisplay.textContent=Math.round(speedKPH);
         stopAllSoundsNow();
         isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
-        // เปิดปุ่ม Calib/SOS/Pose คืน
-        btnCalib.disabled = false;
-        btnSos.disabled = false;
-        btnTogglePose.disabled = false;
+        btnCalib.disabled = false; btnSos.disabled = false; btnTogglePose.disabled = false;
         const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
         ctx.clearRect(0,0,canvas.width,canvas.height);
-        alertTextEl.textContent='หยุดการตรวจจับ'; alertCard.classList.remove('success'); alertCard.classList.add('error'); alertBox.classList.add('show'); setTimeout(()=>alertBox.classList.remove('show'),2200);
+        alertTextEl.textContent='หยุดการตรวจจับ'; alertCard.className = 'card error'; alertBox.classList.add('show'); setTimeout(()=>alertBox.classList.remove('show'),2200);
       }
     });
 
