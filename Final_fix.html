@@ -130,8 +130,7 @@
       </div>
       <div class="indicator-score-item">
         <span>Speed:</span>
-        <span id="speedDisplay">0.0</span>
-      </div>
+        <span id="speedDisplay">0</span> </div>
       <div class="indicator-score-item" id="poseDisplay" style="display: none; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.5rem; margin-top: 0.5rem;">
         <span>Pitch:</span>
         <span id="pitchValue">0.0</span>
@@ -388,7 +387,7 @@
       }
     }
     
-    // === GPS Speed Functions (MODIFIED) ===
+    // === GPS Speed Functions (Correct Logic) ===
     function watchSpeed() {
       if (geolocationWatcher) {
         navigator.geolocation.clearWatch(geolocationWatcher);
@@ -402,7 +401,7 @@
         },
         (err) => {
           console.warn('GPS Error:', err.message);
-          // (ตรรกะอุโมงค์) ไม่ต้องทำอะไร ปล่อยให้ speedKPH ค้างค่าล่าสุดไว้
+          // Keep last speed if GPS fails
         },
         options
       );
@@ -413,11 +412,11 @@
         navigator.geolocation.clearWatch(geolocationWatcher);
         geolocationWatcher = null;
       }
-      // *** MODIFICATION: (ตรรกะกด Stop) ตั้งค่าเป็น 0 เมื่อหยุด ***
+      // *** Set speed to 0 when stopped ***
       speedKPH = 0; 
     }
 
-    // === updateStatusIcons (MODIFIED) ===
+    // === updateStatusIcons (MODIFIED for Integer Speed) ===
     function updateStatusIcons(v){
       const alertTextEl = document.getElementById('alertText');
       const alertSubTextEl = document.getElementById('alertSubText');
@@ -539,7 +538,8 @@
       }
       
       scoreDisplay.textContent = Math.round(driverScore);
-      speedDisplay.textContent = speedKPH.toFixed(1);
+      // *** MODIFICATION: Use Math.round() for integer speed ***
+      speedDisplay.textContent = Math.round(speedKPH); 
     }
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
@@ -811,7 +811,7 @@
       } finally { btnCalib.disabled = false; }
     });
 
-    // === btnToggle (MODIFIED) ===
+    // === btnToggle (MODIFIED for Stop Speed Update) ===
     btnToggle.addEventListener('click', async ()=>{
       if(!isRunning){
         [sndEyes,sndYawn,sndPhone,sndWheel,sndLook].forEach(a=>{ a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{}); });
@@ -849,8 +849,8 @@
           yawValue.textContent = '0.0';
         }
         
-        stopWatchSpeed(); // นี่จะตั้ง speedKPH = 0
-        speedDisplay.textContent = speedKPH.toFixed(1); // *** MODIFICATION: อัปเดตหน้าจอเป็น 0.0 ทันที ***
+        stopWatchSpeed(); // This sets speedKPH = 0
+        speedDisplay.textContent = Math.round(speedKPH); // *** Update display to 0 ***
         
         stopAllSoundsNow(); 
         const s = video.srcObject; if(s){ s.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
