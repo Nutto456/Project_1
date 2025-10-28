@@ -20,8 +20,7 @@
     src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
-    /* ... (CSS Styles ทั้งหมดเหมือนเดิม) ... */
-     :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
+    :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
     .video-wrap { position: relative; width: 100%; max-width: 560px; aspect-ratio: 3/4; }
     @media (max-width: 768px){ .video-wrap{ max-width:100%; aspect-ratio: unset; height: calc(100dvh - 120px); } }
@@ -29,35 +28,133 @@
     #overlay { position: absolute; inset: 0; transform: scaleX(-1); }
     .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; }
     .status-badge { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; }
-    .indicator-group { position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border-radius: 0.5rem; }
+
+    .indicator-group {
+      position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px); border-radius: 0.5rem;
+    }
     .indicator-group svg { color: white; }
-    .indicator-score-group { position: fixed; top: 5rem; right: 1rem; z-index: 50; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border-radius: 0.5rem; color: white; font-size: 0.875rem; min-width: 100px; }
-    .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
-    .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; }
-    .indicator-score-item span:last-child { font-weight: 700; }
-    .alert-popup { position: fixed; inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; z-index: 70; display: none; }
-    .dark .alert-popup { background: none; }
-    .alert-popup.show { display: block; }
-    .alert-popup .card { padding: 0.75rem 1.25rem; border-radius: 0.75rem; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); backdrop-filter: blur(8px); background-color: rgba(226, 232, 240, 0.85); border: 1px solid rgba(0,0,0,0.05); }
-    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255,255,255,0.1); }
+
+    .indicator-score-group {
+      position: fixed;
+      top: 5rem;
+      right: 1rem;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      border-radius: 0.5rem;
+      color: white;
+      font-size: 0.875rem;
+      min-width: 100px;
+    }
+    .indicator-score-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-weight: 600;
+    }
+    .indicator-score-item span:first-child {
+      font-weight: 400;
+      color: #cbd5e1; /* slate-300 */
+    }
+    .indicator-score-item span:last-child {
+      font-weight: 700;
+    }
+
+    /* ======================================================= */
+    /* === แก้ไข: Alert Popup เป็น Modal กลางจอ === */
+    /* ======================================================= */
+    .alert-popup {
+      position: fixed;
+      inset: 0; /* คลุมทั้งจอ */
+      z-index: 100; /* สูงกว่า element อื่นๆ (ยกเว้น Setup Modal) */
+      display: none; /* ซ่อนไว้ก่อน */
+      /* เพิ่ม flex สำหรับจัดกลาง */
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem; /* ระยะห่างขอบจอ */
+      /* พื้นหลัง затемнення */
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px); /* Optional: เพิ่ม blur ให้พื้นหลัง */
+    }
+    .dark .alert-popup {
+       background-color: rgba(0, 0, 0, 0.75); /* Dark mode อาจจะเข้มขึ้นนิดหน่อย */
+    }
+
+    .alert-popup.show {
+      display: flex; /* แสดง modal โดยใช้ flex */
+    }
+
+    /* Style the card (เนื้อหา modal) */
+    .alert-popup .card {
+      /* ไม่ต้องกำหนด position/inset ที่นี่แล้ว */
+      width: 100%; /* ให้เต็มความกว้าง container (ที่ถูกจัดกลาง) */
+      max-width: 400px; /* กำหนดความกว้างสูงสุด */
+      padding: 1.25rem 1.5rem; /* ปรับ padding ได้ตามต้องการ */
+      border-radius: 0.75rem;
+      text-align: center;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.1); /* ปรับเงาได้ */
+      /* backdrop-filter: blur(8px); */ /* อาจจะไม่ต้องใช้ ถ้า backdrop หลักมี blur แล้ว */
+      /* Default background for light mode */
+      background-color: rgba(255, 255, 255, 0.95); /* สีขาวเกือบทึบ */
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .dark .alert-popup .card {
+      /* Default background for dark mode */
+      background-color: rgba(30, 41, 59, 0.95); /* slate-800 เกือบทึบ */
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* สีพื้นหลังตามประเภท Alert (เหมือนเดิม) */
     .alert-popup .card.success { background-color: #10b981; border: none; }
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
-    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2, .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p { color: white; opacity: 1; }
-    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText { opacity: 0.9; }
-    .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child { color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem; }
-    .alert-popup .card h2 { font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.1rem; }
+
+    /* สีข้อความบนพื้นหลังสี (เหมือนเดิม) */
+    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2,
+    .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
+        color: white; opacity: 1;
+    }
+    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText {
+        opacity: 0.9;
+    }
+     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
+       color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem;
+     }
+
+     /* สีข้อความบนพื้นหลังปกติ (เหมือนเดิม) */
+    .alert-popup .card h2 {
+      font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.1rem;
+    }
     .dark .alert-popup .card h2 { color: #f1f5f9; }
     .alert-popup .card p { color: #475569; font-size: 0.875rem; }
     .dark .alert-popup .card p { color: #cbd5e1; }
     .alert-popup .card p:last-child { font-size: 0.75rem; margin-top: 0.4rem; color: #64748b; }
     .dark .alert-popup .card p:last-child { color: #cbd5e1; opacity: 0.8; }
-    #setupModal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); }
+    /* ======================================================= */
+    /* === สิ้นสุดการแก้ไข Alert Popup === */
+    /* ======================================================= */
+
+
+    /* --- สไตล์สำหรับ Setup Modal (เหมือนเดิม) --- */
+    #setupModal {
+      position: fixed; inset: 0; z-index: 110; /* <<-- เพิ่ม z-index ให้สูงกว่า Alert Popup */
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+      background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
+    }
     #setupModal .card { width: 100%; max-width: 400px; padding: 1.5rem 2rem; border-radius: 0.75rem; background-color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
     .dark #setupModal .card { background-color: #1e293b; }
     #setupModal input[type="email"] { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: 1px solid #cbd5e1; background-color: white; color: #1e293b; }
     .dark #setupModal input[type="email"] { border-color: #475569; background-color: #334155; color: #f1f5f9; }
     #setupModal input[type="email"]:focus { outline: 2px solid #4f46e5; border-color: transparent; }
+
+
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
 
@@ -210,7 +307,7 @@
       } catch (error) {
         console.error('SOS Email FAILED...', error);
         // Alert เฉพาะ Manual หรือถ้ามี error จริงๆ
-        if (!isAuto || (error && error.status !== 0)) { // Don't alert for potential network errors during auto-send maybe?
+        if (!isAuto || (error && error.status !== 0 && error.status !== 429)) { // Don't alert for potential network/rate limit errors during auto-send
            alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
         }
         return false;
@@ -266,18 +363,18 @@
       // --- แก้ไข: ตรรกะ Auto SOS (ตั้ง flag ก่อนส่ง) ---
       if (v.takeBreakAlert && !autoSosSent) {
         console.log("Score reached 0. Setting autoSosSent flag and attempting Auto SOS...");
-
+        
         // ---!!! ตั้งค่าสถานะทันที ป้องกันการส่งซ้ำ !!!---
-        autoSosSent = true;
+        autoSosSent = true; 
         // ---------------------------------------------
 
         // ส่ง Email (ใช้ async/await เพื่อรอผล แต่ไม่ block UI หลัก)
-        (async () => {
+        (async () => { 
             const success = await sendSOSLogic(true); // Pass true for automatic trigger
             if (success) {
                 console.log("Auto SOS email potentially sent successfully.");
                 // อัปเดต UI เพื่อบอกว่าส่งแล้ว (ถ้าต้องการ)
-                if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) {
+                if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) { 
                     alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)";
                 } else if (!alertSubTextEl.textContent) {
                     alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)";
@@ -297,9 +394,9 @@
                     }
                 }
             } else {
-                console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry automatically in this session.");
-                // คืนค่า autoSosSent = false ถ้าต้องการให้ลองใหม่
-                // autoSosSent = false;
+                console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry automatically in this session unless reset.");
+                 // ถ้าส่งไม่สำเร็จ (ไม่ว่าจะเพราะ GPS หรือ EmailJS) ให้คืนค่า autoSosSent เป็น false เพื่อลองใหม่รอบหน้า
+                 autoSosSent = false; // <-- ลองใหม่รอบหน้า
 
                 // แจ้งผู้ใช้ว่า Auto SOS ล้มเหลว (ถ้า GPS ไม่พร้อม จะมี alert จาก sendSOSLogic อยู่แล้ว)
                 if (currentCoords) { // ถ้า GPS พร้อม แต่ส่งไม่สำเร็จ
@@ -316,8 +413,6 @@
                         alertBox.classList.add('show');
                     }
                 }
-                 // ถ้าส่งไม่สำเร็จ (ไม่ว่าจะเพราะ GPS หรือ EmailJS) ให้คืนค่า autoSosSent เป็น false เพื่อลองใหม่รอบหน้า
-                 autoSosSent = false;
             }
         })(); // Immediately invoke the async function
       }
@@ -328,9 +423,16 @@
         for(const k of priority){ if(alertMessages[k] && alerts.includes(alertMessages[k].m)){ sub = alertMessages[k].s; break; } }
         alertTextEl.textContent = alerts.join(' / ');
         let currentSubText = sub;
-        // แก้ไข: แสดงสถานะ SOS ต่อท้าย sub text เสมอถ้ามีการส่งแล้ว
-        if (v.takeBreakAlert && autoSosSent) {
-            currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
+        // แก้ไข: แสดงสถานะ SOS ต่อท้าย sub text เสมอถ้ามีการส่งแล้ว (หรือพยายามส่งแล้วแต่ล้มเหลว)
+        if (v.takeBreakAlert) {
+            if (autoSosSent) { // เช็ค flag ที่ตั้งค่าไว้ตอนต้น
+                 currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
+            } else if (!currentCoords) {
+                 // ยังรอ GPS อยู่ อาจจะยังไม่ต้องใส่อะไร
+            } else {
+                 // พยายามส่งแล้วแต่ล้มเหลว (autoSosSent ถูกคืนค่าเป็น false)
+                 // currentSubText += " (ส่ง SOS อัตโนมัติล้มเหลว!)"; // อาจจะใส่หรือไม่ใส่ก็ได้
+            }
         }
         alertSubTextEl.textContent = currentSubText;
 
@@ -482,7 +584,7 @@
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
         stopAllSoundsNow();
-        isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
+        isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false; // <-- รีเซ็ต Auto SOS
         // เปิดปุ่ม Calib/SOS/Pose คืน
         btnCalib.disabled = false;
         btnSos.disabled = false;
