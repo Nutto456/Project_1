@@ -86,12 +86,12 @@
       text-align: center; /* Center text within the card */
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       backdrop-filter: blur(8px);
-      /* Default background for light mode when no specific type */
+      /* Default background for light mode (used when no success/error/warning) */
       background-color: rgba(226, 232, 240, 0.85); /* slate-200 */
       border: 1px solid rgba(0,0,0,0.05);
     }
     .dark .alert-popup .card {
-      /* Default background for dark mode when no specific type */
+      /* Default background for dark mode */
       background-color: rgba(30, 41, 59, 0.85); /* slate-800 */
       border: 1px solid rgba(255,255,255,0.1);
     }
@@ -100,19 +100,26 @@
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
 
-    /* Text on colored backgrounds */
+    /* Text on colored backgrounds (Success, Error, Warning) */
     .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2,
     .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
-        color: white;
+        color: white; /* Force ALL text to white */
+        opacity: 1; /* Ensure full opacity */
     }
-    .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
-        color: rgba(255, 255, 255, 0.9);
+    /* Optional: Slightly dim subtext */
+    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText {
+        opacity: 0.9;
     }
-    .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
-      color: rgba(255, 255, 255, 0.7);
-    }
+     /* Style size/margin/opacity for last paragraph on colored backgrounds */
+     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
+       color: white; /* Ensure it stays white */
+       opacity: 0.85; /* Adjust opacity as needed */
+       font-size: 0.875rem;
+       margin-top: 0.5rem;
+     }
 
-     /* Text on default backgrounds */
+
+     /* Text on default backgrounds (Light/Dark mode, no specific type) */
     .alert-popup .card h2 {
       font-size: 1.1rem;
       font-weight: 600;
@@ -121,18 +128,25 @@
     }
     .dark .alert-popup .card h2 { color: #f1f5f9; /* slate-100 */}
 
-    .alert-popup .card p {
+    .alert-popup .card p { /* Styles for p tags on default bg */
       color: #475569; /* slate-600 */
       font-size: 0.875rem;
     }
     .dark .alert-popup .card p { color: #cbd5e1; /* slate-300 */}
 
+    /* Size/margin/color for last paragraph on default bg */
     .alert-popup .card p:last-child {
       font-size: 0.75rem;
       margin-top: 0.4rem;
       color: #64748b; /* slate-500 */
     }
-    .dark .alert-popup .card p:last-child { color: #94a3b8; /* slate-400 */}
+    /* CORRECTION: Force last P white in dark mode default card */
+    .dark .alert-popup .card p:last-child {
+       color: #cbd5e1; /* Revert back to lighter gray for default dark card */
+       /* If you want it pure white always, uncomment the line below */
+       /* color: white; */
+       opacity: 0.8;
+    }
 
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -199,10 +213,10 @@
     </div>
 
     <div id="alertBox" class="alert-popup">
-      <div id="alertCard" class="card"> <h2 id="alertText"></h2>
+      <div id="alertCard" class="card">
+        <h2 id="alertText"></h2>
         <p id="alertSubText" class="mt-1"></p>
-        <p class="text-white">กรุณาขับขี่ปลอดภัยด้วยนะครับ</p>
-      </div>
+        <p class="mt-4 final-safety-text">กรุณาขับขี่ปลอดภัยด้วยนะครับ</p> </div>
     </div>
 
     <section class="action-bar flex gap-2">
@@ -217,11 +231,12 @@
   <audio id="sndPhone" src="./static/Sound/sndPhone.mp3" preload="auto"></audio>
   <audio id="sndWheel" src="./static/Sound/sndWheel.mp3" preload="auto"></audio>
   <audio id="sndLook"  src="./static/Sound/sndLook.mp3" preload="auto"></audio>
+  <audio id="sndScore" src="./static/Sound/sndScore.mp3" preload="auto"></audio>
 
   <script type="module">
     import { FaceLandmarker, HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
-    // === Elements
+    // === Elements ===
     const video = document.getElementById('video');
     const canvas = document.getElementById('overlay');
     const ctx = canvas.getContext('2d');
@@ -247,12 +262,13 @@
     const yawDisplay = document.getElementById('yawDisplay');
     const pitchValue = document.getElementById('pitchValue');
     const yawValue = document.getElementById('yawValue');
+    const sndScore = document.getElementById('sndScore');
 
     // === Config ===
     const THRESH = {
       EYE_CLOSED: 0.10, YAWN: 0.25, EYE_CLOSED_SEC: 0.8, YAWN_SEC: 1.5,
       BOTH_HANDS_UP_SEC: 2, PITCH_DOWN: 4, PITCH_UP: -15, YAW_LEFT: 10, YAW_RIGHT: -12,
-      PHONE_SCORE: 0.55, WHEEL_OFF_ALERT_SEC: 3.0, FACE_LOST_ALERT_SEC: 2.0,
+      PHONE_SCORE: 0.55, WHEEL_OFF_ALERT_SEC: 5.0, FACE_LOST_ALERT_SEC: 2.0,
       PHONE_HAND_DISTANCE: 0.3, PHONE_LOST_GRACE_SEC: 1.5, YAW_ALERT_SEC: 1.5, PITCH_DOWN_SEC: 1.5,
       SCORE_REDUCE_AMOUNT: 5, SCORE_REDUCE_COOLDOWN: 2000, SCORE_REGEN_AMOUNT: 0.2, SCORE_REGEN_COOLDOWN: 1000
     };
@@ -273,6 +289,8 @@
     let hasAlertedEyes = false, hasAlertedYawn = false, hasAlertedPhone = false, hasAlertedHands = false, hasAlertedWheel = false;
     let phoneLastSeenTime = null;
     let currentAudioAlert = null, fadeOutIntervals = {}, geolocationWatcher = null;
+    let hasPlayedScoreSound = false; // ติดตามว่าเสียงคะแนนหมดเล่นไปหรือยัง
+    let scoreSoundTimeout = null; //  <-- เพิ่ม: ตัวแปรเก็บ Timeout ID
 
     // === Utils ===
     const ema = (p,v,a=0.35)=>(!Number.isFinite(v)?p:(p==null?v:a*v+(1-a)*p));
@@ -283,7 +301,17 @@
     // === Sound Functions ===
     function playAlertSound(id, el) { if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];} if(currentAudioAlert!==id)stopAllSoundsNow(id); el.loop=true; el.volume=1.0; el.play().catch(()=>{}); currentAudioAlert=id; }
     function stopAlertSound(id, el) { if(!el||el.paused||fadeOutIntervals[id])return; el.loop=false; fadeOutIntervals[id]=setInterval(()=>{ let nv=el.volume-0.1; if(nv<=0){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];el.pause();el.currentTime=0;el.volume=1.0;if(currentAudioAlert===id)currentAudioAlert=null;}else el.volume=nv; },80); }
-    function stopAllSoundsNow(exceptId = null) { const allSounds={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,'LOOK':sndLook}; for(const id in allSounds){if(id!==exceptId){const el=allSounds[id];if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];}el.pause();el.currentTime=0;el.volume=1.0;el.loop=false;}} if(currentAudioAlert&&currentAudioAlert!==exceptId)currentAudioAlert=null; }
+    function stopAllSoundsNow(exceptId = null) { 
+      const allSounds={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,'LOOK':sndLook, 'SCORE':sndScore}; 
+      for(const id in allSounds){if(id!==exceptId){const el=allSounds[id];if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];}el.pause();el.currentTime=0;el.volume=1.0;el.loop=false;}} 
+      if(currentAudioAlert&&currentAudioAlert!==exceptId)currentAudioAlert=null;
+      
+      // <-- เพิ่ม: ล้าง Timeout เมื่อหยุดเสียงทั้งหมด
+      if (scoreSoundTimeout) {
+          clearTimeout(scoreSoundTimeout);
+          scoreSoundTimeout = null;
+      }
+    }
 
     // === MediaPipe Setup ===
     const EYE_L=[33,160,158,133,153,144], EYE_R=[263,387,385,362,380,373]; const MOUTH_TOP=13,MOUTH_BOTTOM=14,MOUTH_LEFT=61,MOUTH_RIGHT=291;
@@ -324,10 +352,42 @@
       phoneStatusIcon.style.backgroundColor=(v.phoneAlert||v.takeBreakAlert)?r:d; handsStatusIcon.style.backgroundColor=(v.handsAlert||v.takeBreakAlert)?r:d; wheelStatusIcon.style.backgroundColor=(v.wheelAlert||v.takeBreakAlert)?r:d;
 
       const soundP=[ {f:v.eyeAlert,i:'EYES',e:sndEyes},{f:v.phoneAlert,i:'PHONE',e:sndPhone},{f:v.handsAlert,i:'WHEEL',e:sndWheel},{f:v.wheelAlert,i:'WHEEL',e:sndWheel},{f:v.pitchAlertText,i:'LOOK',e:sndLook},{f:v.yawAlertText,i:'LOOK',e:sndLook},{f:v.yawnAlert,i:'YAWN',e:sndYawn} ];
-      let sPlay=null; if(v.takeBreakAlert)sPlay={i:'EYES',e:sndEyes}; else for(const item of soundP)if(item.f){sPlay=item;break;}
-      if(sPlay)playAlertSound(sPlay.i,sPlay.e); else if(currentAudioAlert){const elToStop={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,'LOOK':sndLook}[currentAudioAlert]; if(elToStop)stopAlertSound(currentAudioAlert,elToStop); currentAudioAlert=null;}
+      
+      if (v.takeBreakAlert) {
+          // === คะแนนเป็น 0 ===
+          stopAllSoundsNow('SCORE'); // หยุดเสียงอื่นทั้งหมด
+          if (!hasPlayedScoreSound) {
+              // <-- แก้ไข: เล่นเสียงวนซ้ำ
+              sndScore.loop = true; 
+              sndScore.volume = 1.0;
+              sndScore.play().catch(()=>{});
+              hasPlayedScoreSound = true; // ตั้งค่าว่าเล่นแล้ว
+              
+              // <-- เพิ่ม: ตั้งเวลา 10 วินาทีให้หยุดเสียง
+              if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout); 
+              scoreSoundTimeout = setTimeout(() => {
+                  stopAlertSound('SCORE', sndScore); // เรียกฟังก์ชัน Fade out
+              }, 30000); // 10 วินาที
+          }
+          currentAudioAlert = 'SCORE'; // ตั้งสถานะเพื่อป้องกันเสียงอื่นเล่น
+      } else {
+          // === การทำงานปกติ ===
+          let sPlay = null;
+          for(const item of soundP) if(item.f) { sPlay=item; break; }
 
-      scoreDisplay.textContent=Math.round(driverScore); speedDisplay.textContent=Math.round(speedKPH); // Integer speed
+          if(sPlay) {
+              // เล่นเสียงแจ้งเตือนแบบวนซ้ำตามปกติ
+              playAlertSound(sPlay.i, sPlay.e);
+          } else if(currentAudioAlert && currentAudioAlert !== 'SCORE') {
+              // ไม่มีแจ้งเตือน, หยุดเสียงที่กำลังเล่น (ถ้าไม่ใช่ 'SCORE')
+              const elToStop={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,'LOOK':sndLook}[currentAudioAlert];
+              if(elToStop) stopAlertSound(currentAudioAlert, elToStop);
+              currentAudioAlert = null;
+          }
+      }
+
+      scoreDisplay.textContent=Math.round(driverScore); 
+      speedDisplay.textContent=Math.round(speedKPH); // Integer speed
     }
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
@@ -336,7 +396,34 @@
 
     // === loop Function ===
     async function loop(){
-      if(!isRunning)return; const now=performance.now(); const budget=1000/getFPS(); if(now-lastTick<budget)return scheduleNext(loop); lastTick=now; if(isBusy)return scheduleNext(loop); isBusy=true;
+      if(!isRunning)return; 
+      const now=performance.now(); 
+      const budget=1000/getFPS(); 
+      if(now-lastTick<budget)return scheduleNext(loop); 
+      lastTick=now; 
+      if(isBusy)return scheduleNext(loop); 
+      isBusy=true;
+
+      // === เพิ่มเข้ามา: ตรวจสอบสถานะคะแนนหมด ===
+      if (isTakingBreakAlert) {
+        // ถ้าคะแนนหมด, ให้แสดงการแจ้งเตือนค้างไว้
+        updateStatusIcons({
+          eyeAlert:false, yawnAlert:false, handsAlert:false, phoneAlert:false, 
+          wheelAlert:false, faceLost:false, yawAlertText:'', pitchAlertText:'', 
+          takeBreakAlert:true 
+        });
+        
+        // ปิดใช้งานปุ่มอื่นที่ไม่ใช่ 'Stop'
+        if (!btnCalib.disabled) btnCalib.disabled = true;
+        if (!btnTogglePose.disabled) btnTogglePose.disabled = true;
+        
+        // ให้ loop นี้ทำงานต่อไปเพื่อแสดงผลค้างไว้, แต่ไม่ทำ detection
+        isBusy = false;
+        scheduleNext(loop); 
+        return; // ข้ามการตรวจจับทั้งหมด
+      }
+      // === สิ้นสุดส่วนที่เพิ่มเข้ามา ===
+
       try{
         const resF=faceLandmarker?.detectForVideo?.(video,now); const resH=handLandmarker?.detectForVideo?.(video,now);
         let dFace=null; if(resF?.faceLandmarks?.length>0)dFace=resF.faceLandmarks.length===1?resF.faceLandmarks[0]:resF.faceLandmarks.reduce((l,c)=>{const la=Math.abs(l[454].x-l[234].x)*Math.abs(l[152].y-l[10].y),ca=Math.abs(c[454].x-c[234].x)*Math.abs(c[152].y-c[10].y);return ca>la?c:l;}); const face=dFace; const hands=collectHands(resH);
@@ -372,7 +459,49 @@
 
     // === Event Listeners ===
     btnCalib.addEventListener('click', async ()=>{ if(!isRunning)btnCalib.disabled=true; alertBox.classList.remove('show'); try{ if(!video.srcObject)await startCam(); if(!modelsReady)await initModels(); const d=performance.now()+2000; let got=false,lastP=null; while(performance.now()<d){ const now=performance.now(); const resF=faceLandmarker?.detectForVideo?.(video,now); let cFace=resF?.faceLandmarks?.[0]; if(cFace){ const m4=resF?.facialTransformationMatrixes?.[0]; const pose=poseFromMatrixAuto(m4)||poseSimple(cFace); if(pose&&Number.isFinite(pose.pitch)&&Number.isFinite(pose.yaw)){lastP=pose;got=true;break;} } await new Promise(r=>requestAnimationFrame(r)); } if(!got){alertTextEl.textContent='ไม่พบหน้า • ขยับให้อยู่กลางภาพ/เพิ่มแสง';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');return;} pitchOffset=lastP.pitch;yawOffset=lastP.yaw;calibrated=true;btnToggle.disabled=false; canvas.style.outline='3px solid #10b981';setTimeout(()=>{canvas.style.outline='none';},520); alertTextEl.textContent='Calibrated! พร้อมเริ่มใช้งาน';alertCard.classList.remove('error');alertCard.classList.add('success');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200); }finally{btnCalib.disabled=false;} });
-    btnToggle.addEventListener('click', async ()=>{ if(!isRunning){ [sndEyes,sndYawn,sndPhone,sndWheel,sndLook].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});}); try{ if(!video.srcObject)await startCam(); if(!modelsReady)await initModels(); if(!calibrated){alertTextEl.textContent='กด Calibrate ก่อนเริ่ม';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200);return;} isRunning=true;btnToggle.textContent='Stop'; driverScore=100;isTakingBreakAlert=false;watchSpeed(); hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false; scheduleNext(loop); }catch(e){console.error(e);alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');btnCalib.disabled=false;} } else { isRunning=false;btnToggle.textContent='Start'; if(showPose){pitchValue.textContent='0.0';yawValue.textContent='0.0';} stopWatchSpeed();speedDisplay.textContent=Math.round(speedKPH); stopAllSoundsNow(); const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;} ctx.clearRect(0,0,canvas.width,canvas.height); alertTextEl.textContent='หยุดการตรวจจับ';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200); } });
+    btnToggle.addEventListener('click', async ()=>{ if(!isRunning){ 
+        [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});}); 
+        
+        // <-- เพิ่ม: ล้าง Timeout เมื่อกด Start (เผื่อค้าง)
+        if (scoreSoundTimeout) {
+            clearTimeout(scoreSoundTimeout);
+            scoreSoundTimeout = null;
+        }
+
+        try{ if(!video.srcObject)await startCam(); if(!modelsReady)await initModels(); if(!calibrated){alertTextEl.textContent='กด Calibrate ก่อนเริ่ม';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200);return;} 
+        isRunning=true;btnToggle.textContent='Stop'; 
+        driverScore=100;
+        isTakingBreakAlert=false;
+        hasPlayedScoreSound = false; // <-- เพิ่ม: รีเซ็ตสถานะเสียง
+        watchSpeed(); 
+        hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false; 
+        
+        // <-- เพิ่ม: เปิดใช้งานปุ่มอีกครั้ง
+        btnCalib.disabled = false;
+        btnTogglePose.disabled = false;
+
+        scheduleNext(loop); 
+      }catch(e){console.error(e);alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');btnCalib.disabled=false;} 
+    } else { 
+      isRunning=false;
+      btnToggle.textContent='Start'; 
+      if(showPose){pitchValue.textContent='0.0';yawValue.textContent='0.0';} 
+      stopWatchSpeed();
+      speedDisplay.textContent=Math.round(speedKPH); 
+      stopAllSoundsNow(); // <-- การเรียกฟังก์ชันนี้จะล้าง Timeout ด้วย
+      
+      // <-- เพิ่ม: รีเซ็ตสถานะทั้งหมด
+      isTakingBreakAlert = false;
+      hasPlayedScoreSound = false;
+
+      // <-- เพิ่ม: เปิดใช้งานปุ่มอีกครั้ง
+      btnCalib.disabled = false;
+      btnTogglePose.disabled = false;
+
+      const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;} 
+      ctx.clearRect(0,0,canvas.width,canvas.height); 
+      alertTextEl.textContent='หยุดการตรวจจับ';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200); 
+    } });
     btnTogglePose.addEventListener('click',()=>{ showPose=!showPose; poseDisplay.style.display=showPose?'flex':'none'; yawDisplay.style.display=showPose?'flex':'none'; btnTogglePose.textContent=showPose?'Hide Pose':'Show Pose'; btnTogglePose.classList.toggle('bg-gray-600',!showPose);btnTogglePose.classList.toggle('hover:bg-gray-700',!showPose); btnTogglePose.classList.toggle('bg-green-600',showPose);btnTogglePose.classList.toggle('hover:bg-green-700',showPose); });
 
     // === Initialisation ===
