@@ -20,7 +20,7 @@
     src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
-    /* ... (CSS Styles ทั้งหมดเหมือนเดิม) ... */
+    /* ... (CSS ส่วนอื่น ๆ เหมือนเดิม) ... */
      :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
     .video-wrap { position: relative; width: 100%; max-width: 560px; aspect-ratio: 3/4; }
@@ -35,11 +35,47 @@
     .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
     .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; }
     .indicator-score-item span:last-child { font-weight: 700; }
-    .alert-popup { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
-    .dark .alert-popup { background-color: rgba(0, 0, 0, 0.75); }
-    .alert-popup.show { display: flex; }
-    .alert-popup .card { width: 100%; max-width: 400px; padding: 1.25rem 1.5rem; border-radius: 0.75rem; text-align: center; box-shadow: 0 10px 15px rgba(0,0,0,0.1); background-color: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0,0,0,0.05); }
-    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* ======================================================= */
+    /* === แก้ไข: Alert Popup กลับไปอยู่ด้านล่าง === */
+    /* ======================================================= */
+    .alert-popup {
+      position: fixed;
+      /* Position above action bar */
+      inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; /* Adjust 4.5rem as needed */
+      z-index: 70; /* Higher than action-bar */
+      display: none; /* ซ่อนไว้ก่อน */
+      /* ไม่ต้องใช้ flex หรือ background затемнення */
+    }
+    .dark .alert-popup { background: none; }
+
+    .alert-popup.show {
+      display: block; /* แสดงเป็น block */
+    }
+
+    /* Style the card (เนื้อหา) - เอา max-width ออก */
+    .alert-popup .card {
+      /* ไม่ต้องกำหนด width/max-width */
+      padding: 0.75rem 1.25rem; /* Padding เดิม */
+      border-radius: 0.75rem;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      backdrop-filter: blur(8px);
+      /* Default background for light mode */
+      background-color: rgba(226, 232, 240, 0.85); /* slate-200 */
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .dark .alert-popup .card {
+      /* Default background for dark mode */
+      background-color: rgba(30, 41, 59, 0.85); /* slate-800 */
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    /* ======================================================= */
+    /* === สิ้นสุดการแก้ไข Alert Popup === */
+    /* ======================================================= */
+
+
+    /* ... (CSS ส่วนอื่นๆ ที่เหลือเหมือนเดิม) ... */
     .alert-popup .card.success { background-color: #10b981; border: none; }
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
@@ -329,7 +365,7 @@
             } else if (k === 'yawLeft' || k === 'yawRight') {
                 if (lvl !== 'error') lvl = 'warning';
             } else if (k === 'yawnAlert') {
-                 if (lvl === 'none') lvl = 'success'; // Yawn เป็น success? อาจจะปรับเป็น warning
+                 if (lvl === 'none') lvl = 'warning'; // เปลี่ยน Yawn เป็น Warning
             }
             break; // เจอ priority สูงสุดแล้ว ออก loop
           }
@@ -339,8 +375,6 @@
         // เพิ่มสถานะ Auto SOS ถ้ามี
         if (v.takeBreakAlert && autoSosSent && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) {
              currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)";
-        } else if (v.takeBreakAlert && !autoSosSent && currentCoords && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) {
-             // currentSubText += " (ส่ง SOS อัตโนมัติล้มเหลว!)"; // อาจจะแสดงหรือไม่
         }
         alertSubTextEl.textContent = currentSubText;
 
@@ -349,10 +383,9 @@
             alertBox.classList.add('show');
         }
       } else if (!alertBox.classList.contains('show')) {
-        // ถ้าไม่มี non-SOS alerts และ alertBox ยังไม่แสดง (เช่นกรณี SOS สำเร็จ/ล้มเหลวอย่างเดียว)
-        // ไม่ต้องทำอะไรที่นี่ เพราะ Listener ของ btnSos จะจัดการแสดง alertBox เอง
+        // ไม่ต้องทำอะไรถ้าไม่มี Alert อื่น และ AlertBox ไม่ได้แสดงอยู่
       } else if (alertBox.classList.contains('show') && alertTextEl.textContent !== 'ส่ง SOS สำเร็จ!' && alertTextEl.textContent !== 'ส่ง SOS ล้มเหลว!') {
-        // ถ้าไม่มี non-SOS alerts แต่ alertBox แสดงอยู่ (และไม่ใช่ alert SOS) ให้ซ่อน
+        // ซ่อน AlertBox ถ้ามันแสดง Alert เก่า (ที่ไม่ใช่ SOS) ค้างอยู่ แต่ตอนนี้ไม่มี Alert ใหม่แล้ว
         alertBox.classList.remove('show');
         alertTextEl.textContent = '';
         alertSubTextEl.textContent = '';
@@ -423,12 +456,12 @@
          alertSubTextEl.textContent = `ส่งแจ้งเตือนไปยัง ${sosEmail} แล้ว กรุณาขับขี่ปลอดภัยด้วยนะครับ`;
          alertCard.className = 'card success';
          alertBox.classList.add('show');
-         // ซ่อน alert box หลังจาก 5 วินาที
+         // ซ่อน alert box หลังจาก 3 วินาที
          setTimeout(() => {
              if (alertTextEl.textContent === 'ส่ง SOS สำเร็จ!') {
                  alertBox.classList.remove('show');
              }
-         }, 1500);
+         }, 3000); // <-- แก้เป็น 3000 (3 วินาที)
       } else {
          alertTextEl.textContent = 'ส่ง SOS ล้มเหลว!';
          alertSubTextEl.textContent = result.error ? `${result.error}` : 'กรุณาตรวจสอบ Console';
@@ -439,12 +472,12 @@
          }
          alertCard.className = 'card error';
          alertBox.classList.add('show');
-         // ซ่อน alert box หลังจาก 5 วินาที
+         // ซ่อน alert box หลังจาก 3 วินาที
          setTimeout(() => {
              if (alertTextEl.textContent === 'ส่ง SOS ล้มเหลว!') {
                 alertBox.classList.remove('show');
              }
-         }, 5000);
+         }, 3000); // <-- แก้เป็น 3000 (3 วินาที)
       }
 
       // เปิดปุ่ม SOS คืนเสมอ
@@ -525,7 +558,7 @@
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
         stopAllSoundsNow();
-        isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
+        isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false; // <-- รีเซ็ต Auto SOS
         btnCalib.disabled = false; btnSos.disabled = false; btnTogglePose.disabled = false;
         const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
         ctx.clearRect(0,0,canvas.width,canvas.height);
