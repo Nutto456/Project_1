@@ -5,9 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Real-time Driver Monitoring System</title>
   <link rel="icon" href="data:,">
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+  
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+  
   <style>
     :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
@@ -17,30 +25,54 @@
     #overlay { position: absolute; inset: 0; transform: scaleX(-1); }
     .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; }
     .status-badge { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; }
-    .indicator-group { position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border-radius: 0.5rem; }
+    
+    .indicator-group { 
+      position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem; 
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px); border-radius: 0.5rem; 
+    }
     .indicator-group svg { color: white; }
-    .indicator-count-group {
+    
+    /* MODIFIED: Changed from "count-group" to "score-group" */
+    .indicator-score-group {
       position: fixed;
       top: 5rem;
       right: 1rem;
       z-index: 50;
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
-      padding: 0.5rem;
+      gap: 0.5rem; /* Increased gap */
+      padding: 0.75rem; /* Increased padding */
       background-color: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
       border-radius: 0.5rem;
       color: white;
-      font-size: 0.75rem;
+      font-size: 0.875rem; /* Larger font */
+      min-width: 100px; /* Set min-width */
     }
-    .indicator-count-item {
+    .indicator-score-item {
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       font-weight: 600;
     }
-    .alert-popup { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); }
+    .indicator-score-item span:first-child {
+      font-weight: 400;
+      color: #cbd5e1; /* slate-300 */
+    }
+    .indicator-score-item span:last-child {
+      font-weight: 700;
+    }
+    
+    .alert-popup { 
+      position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: 1rem; 
+      background-color: rgba(255, 255, 255, 0.7); /* Light theme */
+      backdrop-filter: blur(4px); 
+    }
+    .dark .alert-popup {
+      background-color: rgba(0, 0, 0, 0.7); /* Dark theme */
+    }
+    
     .alert-popup.show { display: flex; }
     .alert-popup .card { padding: 1.5rem; border-radius: 1.5rem; text-align: center; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
     .alert-popup .card.success { background-color: #10b981; }
@@ -52,68 +84,64 @@
   </style>
   <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
 </head>
-<body class="bg-slate-900 min-h-screen text-white">
+
+<body class="bg-white dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
+
+  <div class="fixed top-4 left-4 z-50">
+    <button id="btnTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+      <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden">
+        <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-3.833 2.067-7.17 5.218-8.981a.75.75 0 01.819.162z" clip-rule="evenodd" />
+      </svg>
+      <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden">
+        <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75-.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061L6.166 5.106z" />
+      </svg>
+    </button>
+  </div>
+
   <main class="mx-auto max-w-5xl p-4">
     <header class="mb-3 text-center">
       <h1 class="text-2xl font-bold">Real-time Driver Monitoring System</h1>
-      <p class="text-slate-400 text-sm">ตรวจจับการขับขี่ในแบบเรียลไทม์</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm">ตรวจจับการขับขี่ในแบบเรียลไทม์</p>
     </header>
 
-    <section class="video-wrap mx-auto rounded-xl overflow-hidden bg-gray-800">
+    <section class="video-wrap mx-auto rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="overlay"></canvas>
     </section>
 
     <div class="indicator-group">
       <div id="eyesStatus" class="status-badge bg-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.125 1.125 0 010-1.113zM12 17.25a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.125 1.125 0 010-1.113zM12 17.25a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg>
       </div>
       <div id="phoneStatus" class="status-badge bg-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 013-3h15a3 3 0 013 3v13.5a3 3 0 01-3 3h-15a3 3 0 01-3-3V4.5zM15 15.75a.75.75 0 00.75.75h2.25a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75H15a.75.75 0 00-.75.75v7.5z" clip-rule="evenodd" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 013-3h15a3 3 0 013 3v13.5a3 3 0 01-3 3h-15a3 3 0 01-3-3V4.5zM15 15.75a.75.75 0 00.75.75h2.25a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75H15a.75.75 0 00-.75.75v7.5z" clip-rule="evenodd" /></svg>
       </div>
       <div id="handsStatus" class="status-badge bg-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 01.022 1.063L5.55 11.25a3 3 0 00-1.757 2.252l-.64 3.425a.75.75 0 01-1.096.38l-1.11-1.11a.75.75 0 01.38-1.096l3.425-.641a3 3 0 002.252-1.757l8.02-8.02A.75.75 0 0121.83 2.5l-2.75 2.75a.75.75 0 01-1.06-.022zM21 12a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5A.75.75 0 0121 12zM15 18a.75.75 0 01-.75.75H12a.75.75 0 010-1.5h2.25A.75.75 0 0115 18zM18 15a.75.75 0 01-.75.75H15a.75.75 0 010-1.5h2.25A.75.75 0 0118 15zM6.75 19.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H7.5a.75.75 0 01-.75-.75z" clip-rule="evenodd" /><path d="M16.5 7.5a.75.75 0 01.75-.75h.75a.75.75 0 010 1.5h-.75A.75.75 0 0116.5 7.5z" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 01.022 1.063L5.55 11.25a3 3 0 00-1.757 2.252l-.64 3.425a.75.75 0 01-1.096.38l-1.11-1.11a.75.75 0 01.38-1.096l3.425-.641a3 3 0 002.252-1.757l8.02-8.02A.75.75 0 0121.83 2.5l-2.75 2.75a.75.75 0 01-1.06-.022zM21 12a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5A.75.75 0 0121 12zM15 18a.75.75 0 01-.75.75H12a.75.75 0 010-1.5h2.25A.75.75 0 0115 18zM18 15a.75.75 0 01-.75.75H15a.75.75 0 010-1.5h2.25A.75.75 0 0118 15zM6.75 19.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H7.5a.75.75 0 01-.75-.75z" clip-rule="evenodd" /><path d="M16.5 7.5a.75.75 0 01.75-.75h.75a.75.75 0 010 1.5h-.75A.75.75 0 0116.5 7.5z" /></svg>
       </div>
       <div id="wheelStatus" class="status-badge bg-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-white"><path fill-rule="evenodd" d="M2.55 7.525a8.25 8.25 0 0110.152-4.144L12 4.582a6.75 6.75 0 00-8.237 3.328l-1.213-.385zM12 18a6 6 0 100-12 6 6 0 000 12zM11.25 9a.75.75 0 00-1.5 0v3.257a3 3 0 00-.776-.804l-1.724-1.725a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l2.25-2.25a.75.75 0 00-1.06-1.06l-1.725 1.724a3 3 0 00-.804.776V9z" clip-rule="evenodd" /><path d="M19.423 9.424a.75.75 0 00-.735-1.06l-2.434.646a.75.75 0 00-.372 1.455l2.062-.549.278.847a.75.75 0 001.442-.473L19.5 9.75l.138-.415.286.076a.75.75 0 00.347-1.458l-2.06-.549-.12.364a.75.75 0 00.223.882zM15.908 4.296a.75.75 0 00-.53-1.285l-1.21-.384a.75.75 0 00-.38.38l-.05.151.05.15a.75.75 0 00.38.38l1.21.385a.75.75 0 00.53-.38l.05-.15-.05-.15zM21.75 12a.75.75 0 00-.75-.75H19a.75.75 0 000 1.5h2A.75.75 0 0021.75 12zM17.25 20a.75.75 0 000 1.5h2a.75.75 0 000-1.5h-2zM12.75 22.5a.75.75 0 000 1.5h.75a.75.75 0 000-1.5h-.75z" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M2.55 7.525a8.25 8.25 0 0110.152-4.144L12 4.582a6.75 6.75 0 00-8.237 3.328l-1.213-.385zM12 18a6 6 0 100-12 6 6 0 000 12zM11.25 9a.75.75 0 00-1.5 0v3.257a3 3 0 00-.776-.804l-1.724-1.725a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l2.25-2.25a.75.75 0 00-1.06-1.06l-1.725 1.724a3 3 0 00-.804.776V9z" clip-rule="evenodd" /><path d="M19.423 9.424a.75.75 0 00-.735-1.06l-2.434.646a.75.75 0 00-.372 1.455l2.062-.549.278.847a.75.75 0 001.442-.473L19.5 9.75l.138-.415.286.076a.75.75 0 00.347-1.458l-2.06-.549-.12.364a.75.75 0 00.223.882zM15.908 4.296a.75.75 0 00-.53-1.285l-1.21-.384a.75.75 0 00-.38.38l-.05.151.05.15a.75.75 0 00.38.38l1.21.385a.75.75 0 00.53-.38l.05-.15-.05-.15zM21.75 12a.75.75 0 00-.75-.75H19a.75.75 0 000 1.5h2A.75.75 0 0021.75 12zM17.25 20a.75.75 0 000 1.5h2a.75.75 0 000-1.5h-2zM12.75 22.5a.75.75 0 000 1.5h.75a.75.75 0 000-1.5h-.75z" /></svg>
       </div>
     </div>
 
-    <div class="indicator-count-group">
-      <div class="indicator-count-item">
-        <span>Blinks:</span>
-        <span id="blinkCount">0</span>
+    <div class="indicator-score-group">
+      <div class="indicator-score-item">
+        <span>Score:</span>
+        <span id="driverScoreDisplay">100</span>
       </div>
-      <div class="indicator-count-item">
-        <span>Eyes:</span>
-        <span id="eyesCount">0</span>
+      <div class="indicator-score-item">
+        <span>Speed:</span>
+        <span id="speedDisplay">0.0</span>
       </div>
-      <div class="indicator-count-item">
-        <span>Yawn:</span>
-        <span id="yawnCount">0</span>
-      </div>
-      <div class="indicator-count-item">
-        <span>Phone:</span>
-        <span id="phoneCount">0</span>
-      </div>
-      <div class="indicator-count-item">
-        <span>Hands:</span>
-        <span id="handsCount">0</span>
-      </div>
-      <div class="indicator-count-item">
-        <span>Wheel:</span>
-        <span id="wheelCount">0</span>
-      </div>
-
-      <div class="indicator-count-item" id="poseDisplay" style="display: none; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.25rem; margin-top: 0.25rem;">
+      <div class="indicator-score-item" id="poseDisplay" style="display: none; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.5rem; margin-top: 0.5rem;">
         <span>Pitch:</span>
         <span id="pitchValue">0.0</span>
       </div>
-      <div class="indicator-count-item" id="yawDisplay" style="display: none;">
+      <div class="indicator-score-item" id="yawDisplay" style="display: none;">
         <span>Yaw:</span>
         <span id="yawValue">0.0</span>
       </div>
-      </div>
+    </div>
 
     <div id="alertBox" class="alert-popup">
       <div id="alertCard" class="card">
@@ -160,12 +188,11 @@
     const sndWheel = document.getElementById('sndWheel');
     const sndLook  = document.getElementById('sndLook');
     
-    const blinkCountDisplay = document.getElementById('blinkCount');
-    const eyesCountDisplay = document.getElementById('eyesCount');
-    const yawnCountDisplay = document.getElementById('yawnCount');
-    const phoneCountDisplay = document.getElementById('phoneCount');
-    const handsCountDisplay = document.getElementById('handsCount');
-    const wheelCountDisplay = document.getElementById('wheelCount');
+    // REMOVED: ...CountDisplay elements
+    
+    // NEW: Score and Speed elements
+    const scoreDisplay = document.getElementById('driverScoreDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
 
     const btnTogglePose = document.getElementById('btnTogglePose');
     const poseDisplay = document.getElementById('poseDisplay');
@@ -173,23 +200,30 @@
     const pitchValue = document.getElementById('pitchValue');
     const yawValue = document.getElementById('yawValue');
 
-    // === Config
+    // === Config ===
     const THRESH = {
-      EYE_CLOSED: 0.12,
+      EYE_CLOSED: 0.10,
       YAWN: 0.25,
       EYE_CLOSED_SEC: 0.8,
       YAWN_SEC: 1.5,
       BOTH_HANDS_UP_SEC: 2,
-      PITCH_DOWN: 5,
-      PITCH_UP: -15,
-      YAW_LEFT: 12,
-      YAW_RIGHT: -12,
+      PITCH_DOWN: 4,     
+      PITCH_UP: -15,   
+      YAW_LEFT: 10,    
+      YAW_RIGHT: -12,  
       PHONE_SCORE: 0.55,
-      WHEEL_OFF_ALERT_SEC: 3.0,
+      WHEEL_OFF_ALERT_SEC: 3.0, // <-- BUG FIX: This will now be used correctly
       FACE_LOST_ALERT_SEC: 2.0,
       PHONE_HAND_DISTANCE: 0.3,
       PHONE_LOST_GRACE_SEC: 1.5,
-      HAND_FACE_DISTANCE: 0.4
+      YAW_ALERT_SEC: 1.5,     
+      PITCH_DOWN_SEC: 1.5,
+      
+      // NEW: Score config
+      SCORE_REDUCE_AMOUNT: 5,   // Points to reduce per event
+      SCORE_REDUCE_COOLDOWN: 2000, // ms between reductions
+      SCORE_REGEN_AMOUNT: 0.2,  // Points to regen per second
+      SCORE_REGEN_COOLDOWN: 1000  // ms between regens
     };
     
     // === State
@@ -205,19 +239,30 @@
     let pitchEMA=null, yawEMA=null, rollEMA=null;
     let eyeStart=null, yawnStart=null, handsStart=null, lastPhoneDetections = [];
     
+    let yawLeftStart = null, yawRightStart = null, pitchDownStart = null;
+    let hasAlertedYawLeft = false, hasAlertedYawRight = false, hasAlertedPitchDown = false;
+    
     let faceLastSeen = null;
 
     let frameCount = 0;
     const poseGain = 1.2, yawGain = 2.0, pitchGain = 1.4;
     
-    let blinkCount = 0, eyesCount = 0, yawnCount = 0, phoneCount = 0, handsCount = 0, wheelCount = 0;
+    // REMOVED: ...Count variables
+    
+    // NEW: Score and Speed state
+    let driverScore = 100;
+    let speedKPH = 0;
+    let scoreLastReduced = 0;
+    let scoreLastRegen = 0;
+    let isTakingBreakAlert = false;
     
     let isEyeClosed = false;
     let hasAlertedEyes = false, hasAlertedYawn = false, hasAlertedPhone = false, hasAlertedHands = false, hasAlertedWheel = false;
     let phoneLastSeenTime = null;
 
     let currentAudioAlert = null; 
-    let fadeOutIntervals = {}; 
+    let fadeOutIntervals = {};
+    let geolocationWatcher = null; 
 
     // === Utils
     const ema = (p,v,a=0.35)=>(!Number.isFinite(v)?p:(p==null?v:a*v+(1-a)*p));
@@ -243,9 +288,7 @@
     function stopAlertSound(id, el) {
       if (!el || el.paused) return; 
       if (fadeOutIntervals[id]) return; 
-
       el.loop = false; 
-
       fadeOutIntervals[id] = setInterval(() => {
         let newVolume = el.volume - 0.1; 
         if (newVolume <= 0) {
@@ -265,11 +308,7 @@
 
     function stopAllSoundsNow(exceptId = null) {
       const allSounds = {
-        'EYES': sndEyes,
-        'YAWN': sndYawn,
-        'PHONE': sndPhone,
-        'WHEEL': sndWheel,
-        'LOOK': sndLook
+        'EYES': sndEyes, 'YAWN': sndYawn, 'PHONE': sndPhone, 'WHEEL': sndWheel, 'LOOK': sndLook
       };
       for (const id in allSounds) {
         if (id !== exceptId) {
@@ -356,7 +395,38 @@
         throw err;
       }
     }
+    
+    // NEW: Function to start watching GPS Speed
+    function watchSpeed() {
+      if (geolocationWatcher) {
+        navigator.geolocation.clearWatch(geolocationWatcher);
+      }
+      
+      const options = { enableHighAccuracy: true, maximumAge: 0 };
+      
+      geolocationWatcher = navigator.geolocation.watchPosition(
+        (pos) => {
+          const speedMPS = pos.coords.speed; // Speed is in meters/second
+          speedKPH = (speedMPS || 0) * 3.6;
+        },
+        (err) => {
+          console.warn('GPS Error:', err.message);
+          speedKPH = 0;
+        },
+        options
+      );
+    }
+    
+    // NEW: Function to stop watching GPS Speed
+    function stopWatchSpeed() {
+      if (geolocationWatcher) {
+        navigator.geolocation.clearWatch(geolocationWatcher);
+        geolocationWatcher = null;
+      }
+      speedKPH = 0;
+    }
 
+    // MODIFIED: updateStatusIcons
     function updateStatusIcons(v){
       const alertTextEl = document.getElementById('alertText');
       const alertSubTextEl = document.getElementById('alertSubText');
@@ -372,9 +442,11 @@
         faceLost:   { main: 'ไม่พบใบหน้า', sub: 'กรุณาปรับตำแหน่งกล้องให้อยู่ในมุมที่เหมาะสม' },
         yawLeft:    { main: 'หันซ้าย', sub: 'โปรดให้ความสนใจกับเส้นทางด้านหน้า' },
         yawRight:   { main: 'หันขวา', sub: 'โปรดให้ความสนใจกับเส้นทางด้านหน้า' },
+        takeBreak:  { main: '!!! พักผ่อนด่วน !!!', sub: 'คะแนนความพร้อมของคุณหมดแล้ว จอดพักทันที' }
       };
 
       const alertPriority = [
+        'takeBreak', // NEW: Highest priority
         'eyeAlert', 'handsAlert', 'wheelAlert', 'phoneAlert', 'pitchDown', 'pitchUp', 
         'yawnAlert', 'faceLost', 'yawLeft', 'yawRight'
       ];
@@ -382,17 +454,23 @@
       const mainAlerts = [];
       let subText = '';
       let alertLevel = 'none';
+      
+      // NEW: Check for "Take a Break" alert
+      if (v.takeBreakAlert) {
+        mainAlerts.push(alertMessages.takeBreak.main);
+        alertLevel = 'error';
+      }
 
       if (v.yawAlertText) {
         const key = v.yawAlertText === 'หันซ้าย' ? 'yawLeft' : 'yawRight';
         mainAlerts.push(alertMessages[key].main);
-        if (alertLevel === 'none') alertLevel = 'success';
+        if (alertLevel === 'none' || alertLevel === 'success') alertLevel = 'warning';
       }
 
       if (v.pitchAlertText) {
         const key = v.pitchAlertText === 'ก้มหน้า' ? 'pitchDown' : 'pitchUp';
         mainAlerts.push(alertMessages[key].main);
-        alertLevel = 'error';
+        if (alertLevel === 'none' || alertLevel === 'success' || alertLevel === 'warning') alertLevel = 'error';
       }
 
       if (v.eyeAlert)   { mainAlerts.push(alertMessages.eyeAlert.main);   alertLevel = 'error'; }
@@ -403,11 +481,7 @@
       
       if (v.yawnAlert) {
         mainAlerts.push(alertMessages.yawnAlert.main);
-        if (yawnCount >= 3) {
-            alertLevel = 'error';
-        } else if (yawnCount === 2 && alertLevel !== 'error') {
-            alertLevel = 'warning';
-        } else if (alertLevel === 'none') {
+        if (alertLevel === 'none') {
             alertLevel = 'success';
         }
       }
@@ -431,21 +505,18 @@
       }
       
       const red = '#dc2626', yellow = '#f59e0b', green = '#10b981', defaultColor = '';
-      eyesStatusIcon.style.backgroundColor = (v.eyeAlert || (v.pitchAlertText && alertLevel === 'error')) ? red : defaultColor;
-      if (v.yawnAlert) {
-        if (yawnCount >= 3) { eyesStatusIcon.style.backgroundColor = red; }
-        else if (yawnCount === 2) { eyesStatusIcon.style.backgroundColor = yellow; }
-        else { eyesStatusIcon.style.backgroundColor = green; }
-      }
-      phoneStatusIcon.style.backgroundColor = v.phoneAlert ? red : defaultColor;
-      handsStatusIcon.style.backgroundColor = v.handsAlert ? red : defaultColor;
-      wheelStatusIcon.style.backgroundColor = v.wheelAlert ? red : defaultColor;
+      
+      // NEW: Red icon if score is 0
+      eyesStatusIcon.style.backgroundColor = (v.eyeAlert || (v.pitchAlertText && alertLevel === 'error') || v.takeBreakAlert) ? red : (v.yawAlertText ? yellow : (v.yawnAlert ? green : defaultColor));
+      phoneStatusIcon.style.backgroundColor = (v.phoneAlert || v.takeBreakAlert) ? red : defaultColor;
+      handsStatusIcon.style.backgroundColor = (v.handsAlert || v.takeBreakAlert) ? red : defaultColor;
+      wheelStatusIcon.style.backgroundColor = (v.wheelAlert || v.takeBreakAlert) ? red : defaultColor;
+
 
       // --- Logic การจัดการเสียง (Priority & Fade Out) ---
-      // <-- 2. แก้ไขลำดับความสำคัญ: ย้าย phoneAlert ขึ้นมา
       const soundPriority = [
         { flag: v.eyeAlert,       id: 'EYES',  el: sndEyes  },
-        { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone }, // <-- ย้ายมานี่
+        { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone }, 
         { flag: v.handsAlert,     id: 'WHEEL', el: sndWheel }, 
         { flag: v.wheelAlert,     id: 'WHEEL', el: sndWheel },
         { flag: v.pitchAlertText, id: 'LOOK',  el: sndLook  }, 
@@ -454,10 +525,15 @@
       ];
 
       let soundToPlay = null;
-      for (const item of soundPriority) {
-        if (item.flag) { 
-          soundToPlay = item;
-          break; 
+      // NEW: "Take a break" alert uses the "EYES" sound
+      if (v.takeBreakAlert) {
+        soundToPlay = { id: 'EYES', el: sndEyes };
+      } else {
+        for (const item of soundPriority) {
+          if (item.flag) { 
+            soundToPlay = item;
+            break; 
+          }
         }
       }
 
@@ -477,12 +553,9 @@
       }
       // --- (จบ Logic การจัดการเสียง) ---
 
-      blinkCountDisplay.textContent = blinkCount;
-      eyesCountDisplay.textContent = eyesCount;
-      yawnCountDisplay.textContent = yawnCount;
-      phoneCountDisplay.textContent = phoneCount;
-      handsCountDisplay.textContent = handsCount;
-      wheelCountDisplay.textContent = wheelCount;
+      // NEW: Update Score and Speed displays
+      scoreDisplay.textContent = Math.round(driverScore);
+      speedDisplay.textContent = speedKPH.toFixed(1);
     }
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
@@ -519,16 +592,15 @@
           }
         }
         const face = driverFace;
-
         const hands = collectHands(resH);
 
         let eyeAlert=false,yawnAlert=false,handsAlert=false,phoneAlert=false,phone=false, wheelAlert=false;
         let faceLost=false, yawAlertText='', pitchAlertText='';
+        let reduceScore = false; // NEW: Flag to reduce score
 
         ctx.clearRect(0,0,canvas.width,canvas.height);
 
         if(face){
-          // ... (โค้ดส่วน Face, Pose, EAR, MAR ไม่มีการเปลี่ยนแปลง) ...
           const m4 = resF?.facialTransformationMatrixes?.[0];
           let pose = poseFromMatrixAuto(m4) || poseSimple(face);
           if(pose){
@@ -544,29 +616,61 @@
               yawValue.textContent = finalYaw.toFixed(1);
             }
 
-            if (finalYaw > THRESH.YAW_LEFT) { yawAlertText = 'หันซ้าย'; }
-            else if (finalYaw < THRESH.YAW_RIGHT) { yawAlertText = 'หันขวา'; }
-            if (finalPitch > THRESH.PITCH_DOWN) { pitchAlertText = 'ก้มหน้า'; }
-            else if (finalPitch < THRESH.PITCH_UP) { pitchAlertText = 'เงยหน้า'; }
+            // --- YAW (หันซ้าย/ขวา) ---
+            if (finalYaw > THRESH.YAW_LEFT) { 
+                if (yawLeftStart === null) yawLeftStart = now; 
+                yawRightStart = null; hasAlertedYawRight = false; 
+                if ((now - yawLeftStart) / 1000 > THRESH.YAW_ALERT_SEC) {
+                    yawAlertText = 'หันซ้าย';
+                    if (!hasAlertedYawLeft) { reduceScore = true; hasAlertedYawLeft = true; }
+                }
+            } else if (finalYaw < THRESH.YAW_RIGHT) { 
+                if (yawRightStart === null) yawRightStart = now; 
+                yawLeftStart = null; hasAlertedYawLeft = false; 
+                if ((now - yawRightStart) / 1000 > THRESH.YAW_ALERT_SEC) {
+                    yawAlertText = 'หันขวา';
+                    if (!hasAlertedYawRight) { reduceScore = true; hasAlertedYawRight = true; }
+                }
+            } else { 
+                yawLeftStart = null; hasAlertedYawLeft = false;
+                yawRightStart = null; hasAlertedYawRight = false;
+            }
+
+            // --- PITCH (ก้ม/เงย) ---
+            if (finalPitch > THRESH.PITCH_DOWN) { 
+                if (pitchDownStart === null) pitchDownStart = now; 
+                if ((now - pitchDownStart) / 1000 > THRESH.PITCH_DOWN_SEC) {
+                    pitchAlertText = 'ก้มหน้า';
+                    if (!hasAlertedPitchDown) { reduceScore = true; hasAlertedPitchDown = true; }
+                }
+            } else if (finalPitch < THRESH.PITCH_UP) { 
+                pitchAlertText = 'เงยหน้า'; 
+                pitchDownStart = null; hasAlertedPitchDown = false; 
+                if (!hasAlertedPitchDown) { reduceScore = true; hasAlertedPitchDown = true; } 
+            } else { 
+                pitchDownStart = null; hasAlertedPitchDown = false;
+            }
           }
           const EAR = ear(face, EYE_L)*0.5 + ear(face, EYE_R)*0.5;
           const MAR = marSimple(face);
-          if (EAR < THRESH.EYE_CLOSED) {
+
+          if (EAR < THRESH.EYE_CLOSED) { 
             isEyeClosed = true;
             if(eyeStart==null) { eyeStart=now; } 
             else if((now-eyeStart)/1000>THRESH.EYE_CLOSED_SEC) {
               eyeAlert=true;
-              if (!hasAlertedEyes) { eyesCount++; hasAlertedEyes = true; }
+              if (!hasAlertedEyes) { reduceScore = true; hasAlertedEyes = true; }
             }
           } else {
-            if (isEyeClosed) { blinkCount++; }
+            // NEW: If eyes just opened, reset the "Take Break" alert
+            if (isEyeClosed) { isTakingBreakAlert = false; } 
             isEyeClosed = false; eyeStart = null; hasAlertedEyes = false;
           }
           if(MAR > THRESH.YAWN){ 
             if(yawnStart==null) { yawnStart=now; }
             else if((now-yawnStart)/1000>THRESH.YAWN_SEC) {
               yawnAlert=true;
-              if (!hasAlertedYawn) { yawnCount++; hasAlertedYawn = true; }
+              if (!hasAlertedYawn) { reduceScore = true; hasAlertedYawn = true; }
             }
           } else { yawnStart=null; hasAlertedYawn = false; }
           faceLastSeen = now/1000;
@@ -574,6 +678,7 @@
           const t = now/1000;
           if(!faceLastSeen) faceLastSeen = t;
           faceLost = (t - faceLastSeen > THRESH.FACE_LOST_ALERT_SEC);
+          if (faceLost) { reduceScore = true; }
         }
 
         const handsOnScreen = resH?.landmarks?.length || 0;
@@ -590,15 +695,13 @@
           if (handsStart === null) handsStart = now;
           if ((now - handsStart) / 1000 > THRESH.BOTH_HANDS_UP_SEC) {
             handsAlert = true;
-            if (!hasAlertedHands) { handsCount++; hasAlertedHands = true; }
+            if (!hasAlertedHands) { reduceScore = true; hasAlertedHands = true; }
           }
         } else {
           handsStart = null; hasAlertedHands = false;
         }
 
-        // ========================================================
-        // === 1. (ย้ายมา) ตรวจจับโทรศัพท์ก่อน =======================
-        // ========================================================
+        // --- ตรวจจับโทรศัพท์ ---
         let phoneBoxes = []; 
         if (phoneReady && cocoSsdModel) {
           const predictions = await cocoSsdModel.detect(video);
@@ -613,19 +716,15 @@
         }
 
         let isPhoneDetectedThisFrame = false;
-        if (phoneBoxes?.length && resH?.landmarks?.length && face) {
-          const nosePos = face[1];
+        if (phoneBoxes?.length && resH?.landmarks?.length) { 
           for (const box of phoneBoxes) {
             const phoneCenter = { x: (box.xMin + box.xMax) / 2 / video.videoWidth, y: (box.yMin + box.yMax) / 2 / video.videoHeight };
             for (const handLm of resH.landmarks) {
               const wristPos = handLm[0];
               const distHandPhone = getDistance(phoneCenter, wristPos);
               if (distHandPhone < THRESH.PHONE_HAND_DISTANCE) {
-                const distHandFace = getDistance(wristPos, nosePos);
-                if (distHandFace < THRESH.HAND_FACE_DISTANCE) {
-                  isPhoneDetectedThisFrame = true;
-                  break; 
-                }
+                isPhoneDetectedThisFrame = true;
+                break; 
               }
             }
             if (isPhoneDetectedThisFrame) break;
@@ -638,44 +737,60 @@
 
         if (phoneLastSeenTime !== null && (now - phoneLastSeenTime) / 1000 < THRESH.PHONE_LOST_GRACE_SEC) {
           phone = true;
-          if (!hasAlertedPhone) { phoneCount++; hasAlertedPhone = true; }
+          if (!hasAlertedPhone) { reduceScore = true; hasAlertedPhone = true; }
         } else {
           phone = false;
           hasAlertedPhone = false;
           phoneLastSeenTime = null;
         }
-        phoneAlert = phone; // <-- ★ ได้ค่า phoneAlert แล้ว
+        phoneAlert = phone; 
 
-        // ========================================================
-        // === 2. (แก้ไข) ตรวจจับพวงมาลัย โดยอ้างอิงค่า phoneAlert ===
-        // ========================================================
-        
-        // เราจะเช็ค 'wheelAlert' (มือลอย) ก็ต่อเมื่อ...
-        // 1. ไม่ได้ยกสองมือ (handsAlert) และ 2. ไม่ได้เล่นโทรศัพท์ (phoneAlert)
-        if (!handsAlert && !phoneAlert) { 
-          
-          if (handsOnScreen === 0) {
-            // SAFE: ไม่เห็นมือ = มืออยู่บนพวงมาลัย (นอกเฟรม)
-            wheelOffStart = null; 
-            hasAlertedWheel = false;
-          } else {
-            // DANGER: เห็นมือ (และมือนี้ไม่ได้ถือโทรศัพท์) = มือลอย
+        // --- *** BUG FIX: ตรรกะพวงมาลัยที่ถูกต้อง *** ---
+        if (!handsAlert && !phoneAlert) { // ถ้าไม่ได้ยืดแขน หรือเล่นมือถือ
+          if (handsOnScreen === 0) { // <--- ถ้าไม่พบมือเลย
             if (wheelOffStart === null) wheelOffStart = now; // เริ่มจับเวลา
             if ((now - wheelOffStart) / 1000 > THRESH.WHEEL_OFF_ALERT_SEC) {
-              wheelAlert = true; // แจ้งเตือน
-              if (!hasAlertedWheel) { wheelCount++; hasAlertedWheel = true; }
+              wheelAlert = true; // แจ้งเตือน!
+              if (!hasAlertedWheel) { reduceScore = true; hasAlertedWheel = true; }
             }
+          } else { // <--- ถ้าเห็นมือ (1 หรือ 2 ข้าง)
+            wheelOffStart = null; // รีเซ็ตเวลา
+            hasAlertedWheel = false;
           }
         } else {
-          // ถ้ายกสองมือ หรือ กำลังเล่นโทรศัพท์ -> ให้รีเซ็ตการจับเวลา "มือลอย"
-          wheelOffStart = null; 
+          wheelOffStart = null; // รีเซ็ตเวลา
           hasAlertedWheel = false;
         }
-        // ========================================================
-        // === จบส่วนที่แก้ไข ====================================
-        // ========================================================
         
-        updateStatusIcons({ eyeAlert, yawnAlert, handsAlert, phoneAlert, wheelAlert, faceLost, yawAlertText, pitchAlertText });
+        // --- NEW: Scoring Logic ---
+        if (driverScore <= 0) {
+          isTakingBreakAlert = true;
+        }
+        
+        if (reduceScore && (now - scoreLastReduced > THRESH.SCORE_REDUCE_COOLDOWN)) {
+          driverScore = Math.max(0, driverScore - THRESH.SCORE_REDUCE_AMOUNT);
+          scoreLastReduced = now;
+        }
+        
+        const isSafe = !eyeAlert && !yawnAlert && !handsAlert && !phoneAlert && !wheelAlert && !faceLost && !yawAlertText && !pitchAlertText;
+        
+        if (isSafe && face && (now - scoreLastRegen > THRESH.SCORE_REGEN_COOLDOWN)) {
+          // ถ้าขับดี และคะแนนไม่เต็ม
+          if (driverScore < 100) {
+            driverScore = Math.min(100, driverScore + THRESH.SCORE_REGEN_AMOUNT);
+          }
+          // ถ้าคะแนนเต็ม 100 และกำลังมี alert "พักผ่อน" ให้ปิด alert นั้น
+          if (driverScore >= 100) {
+            isTakingBreakAlert = false;
+          }
+          scoreLastRegen = now;
+        }
+        
+        updateStatusIcons({ 
+          eyeAlert, yawnAlert, handsAlert, phoneAlert, wheelAlert, 
+          faceLost, yawAlertText, pitchAlertText, 
+          takeBreakAlert: isTakingBreakAlert // NEW
+        });
 
       }catch(e){ console.error('loop error',e); }
       finally{ isBusy=false; scheduleNext(loop); }
@@ -734,8 +849,14 @@
             return;
           }
           isRunning = true; btnToggle.textContent='Stop';
-          blinkCount = 0; eyesCount = 0; yawnCount = 0; phoneCount = 0; handsCount = 0; wheelCount = 0;
+          
+          // NEW: Reset Score and Start Speed Watcher
+          driverScore = 100;
+          isTakingBreakAlert = false;
+          watchSpeed();
+          
           hasAlertedEyes = false; hasAlertedYawn = false; hasAlertedPhone = false; hasAlertedHands = false; hasAlertedWheel = false;
+          hasAlertedYawLeft = false; hasAlertedYawRight = false; hasAlertedPitchDown = false;
           scheduleNext(loop);
         }catch(err){ 
           console.error(err);
@@ -751,6 +872,10 @@
           pitchValue.textContent = '0.0';
           yawValue.textContent = '0.0';
         }
+        
+        // NEW: Stop Speed Watcher
+        stopWatchSpeed();
+        
         stopAllSoundsNow(); 
         const s = video.srcObject; if(s){ s.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
         ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -784,6 +909,48 @@
         await startCam();
         await initModels();
       }catch{}
+    })();
+  </script>
+
+  <script>
+    (function() {
+      const btnTheme = document.getElementById('btnTheme');
+      const iconSun = document.getElementById('themeIconSun');
+      const iconMoon = document.getElementById('themeIconMoon');
+      const htmlEl = document.documentElement;
+
+      function setTheme(theme) {
+        if (theme === 'dark') {
+          htmlEl.classList.add('dark');
+          iconSun.classList.remove('hidden');
+          iconSun.classList.add('block');
+          iconMoon.classList.remove('block');
+          iconMoon.classList.add('hidden');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          htmlEl.classList.remove('dark');
+          iconSun.classList.remove('block');
+          iconSun.classList.add('hidden');
+          iconMoon.classList.remove('hidden');
+          iconMoon.classList.add('block');
+          localStorage.setItem('theme', 'light');
+        }
+      }
+
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light') {
+        setTheme('light');
+      } else {
+        setTheme('dark'); 
+      }
+
+      btnTheme.addEventListener('click', () => {
+        if (htmlEl.classList.contains('dark')) {
+          setTheme('light');
+        } else {
+          setTheme('dark');
+        }
+      });
     })();
   </script>
 </body>
