@@ -33,7 +33,6 @@
     }
     .indicator-group svg { color: white; }
     
-    /* MODIFIED: Changed from "count-group" to "score-group" */
     .indicator-score-group {
       position: fixed;
       top: 5rem;
@@ -41,14 +40,14 @@
       z-index: 50;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem; /* Increased gap */
-      padding: 0.75rem; /* Increased padding */
+      gap: 0.5rem;
+      padding: 0.75rem;
       background-color: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(8px);
       border-radius: 0.5rem;
       color: white;
-      font-size: 0.875rem; /* Larger font */
-      min-width: 100px; /* Set min-width */
+      font-size: 0.875rem;
+      min-width: 100px;
     }
     .indicator-score-item {
       display: flex;
@@ -188,9 +187,6 @@
     const sndWheel = document.getElementById('sndWheel');
     const sndLook  = document.getElementById('sndLook');
     
-    // REMOVED: ...CountDisplay elements
-    
-    // NEW: Score and Speed elements
     const scoreDisplay = document.getElementById('driverScoreDisplay');
     const speedDisplay = document.getElementById('speedDisplay');
 
@@ -212,18 +208,17 @@
       YAW_LEFT: 10,    
       YAW_RIGHT: -12,  
       PHONE_SCORE: 0.55,
-      WHEEL_OFF_ALERT_SEC: 3.0, // <-- BUG FIX: This will now be used correctly
+      WHEEL_OFF_ALERT_SEC: 3.0,
       FACE_LOST_ALERT_SEC: 2.0,
       PHONE_HAND_DISTANCE: 0.3,
       PHONE_LOST_GRACE_SEC: 1.5,
       YAW_ALERT_SEC: 1.5,     
       PITCH_DOWN_SEC: 1.5,
       
-      // NEW: Score config
-      SCORE_REDUCE_AMOUNT: 5,   // Points to reduce per event
-      SCORE_REDUCE_COOLDOWN: 2000, // ms between reductions
-      SCORE_REGEN_AMOUNT: 0.2,  // Points to regen per second
-      SCORE_REGEN_COOLDOWN: 1000  // ms between regens
+      SCORE_REDUCE_AMOUNT: 5,
+      SCORE_REDUCE_COOLDOWN: 2000,
+      SCORE_REGEN_AMOUNT: 0.2,
+      SCORE_REGEN_COOLDOWN: 1000
     };
     
     // === State
@@ -247,9 +242,6 @@
     let frameCount = 0;
     const poseGain = 1.2, yawGain = 2.0, pitchGain = 1.4;
     
-    // REMOVED: ...Count variables
-    
-    // NEW: Score and Speed state
     let driverScore = 100;
     let speedKPH = 0;
     let scoreLastReduced = 0;
@@ -270,7 +262,7 @@
     const rad2deg=(r)=>r*57.2957795;
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-    // === ฟังก์ชันจัดการเสียง (Fade Out & Priority) ===
+    // === Sound Functions (Unchanged) ===
     function playAlertSound(id, el) {
       if (fadeOutIntervals[id]) {
         clearInterval(fadeOutIntervals[id]);
@@ -396,37 +388,36 @@
       }
     }
     
-    // NEW: Function to start watching GPS Speed
+    // === GPS Speed Functions (MODIFIED) ===
     function watchSpeed() {
       if (geolocationWatcher) {
         navigator.geolocation.clearWatch(geolocationWatcher);
       }
-      
       const options = { enableHighAccuracy: true, maximumAge: 0 };
       
       geolocationWatcher = navigator.geolocation.watchPosition(
         (pos) => {
-          const speedMPS = pos.coords.speed; // Speed is in meters/second
+          const speedMPS = pos.coords.speed;
           speedKPH = (speedMPS || 0) * 3.6;
         },
         (err) => {
           console.warn('GPS Error:', err.message);
-          speedKPH = 0;
+          // (ตรรกะอุโมงค์) ไม่ต้องทำอะไร ปล่อยให้ speedKPH ค้างค่าล่าสุดไว้
         },
         options
       );
     }
     
-    // NEW: Function to stop watching GPS Speed
     function stopWatchSpeed() {
       if (geolocationWatcher) {
         navigator.geolocation.clearWatch(geolocationWatcher);
         geolocationWatcher = null;
       }
-      speedKPH = 0;
+      // *** MODIFICATION: (ตรรกะกด Stop) ตั้งค่าเป็น 0 เมื่อหยุด ***
+      speedKPH = 0; 
     }
 
-    // MODIFIED: updateStatusIcons
+    // === updateStatusIcons (MODIFIED) ===
     function updateStatusIcons(v){
       const alertTextEl = document.getElementById('alertText');
       const alertSubTextEl = document.getElementById('alertSubText');
@@ -446,7 +437,7 @@
       };
 
       const alertPriority = [
-        'takeBreak', // NEW: Highest priority
+        'takeBreak', 
         'eyeAlert', 'handsAlert', 'wheelAlert', 'phoneAlert', 'pitchDown', 'pitchUp', 
         'yawnAlert', 'faceLost', 'yawLeft', 'yawRight'
       ];
@@ -455,7 +446,6 @@
       let subText = '';
       let alertLevel = 'none';
       
-      // NEW: Check for "Take a Break" alert
       if (v.takeBreakAlert) {
         mainAlerts.push(alertMessages.takeBreak.main);
         alertLevel = 'error';
@@ -506,14 +496,11 @@
       
       const red = '#dc2626', yellow = '#f59e0b', green = '#10b981', defaultColor = '';
       
-      // NEW: Red icon if score is 0
       eyesStatusIcon.style.backgroundColor = (v.eyeAlert || (v.pitchAlertText && alertLevel === 'error') || v.takeBreakAlert) ? red : (v.yawAlertText ? yellow : (v.yawnAlert ? green : defaultColor));
       phoneStatusIcon.style.backgroundColor = (v.phoneAlert || v.takeBreakAlert) ? red : defaultColor;
       handsStatusIcon.style.backgroundColor = (v.handsAlert || v.takeBreakAlert) ? red : defaultColor;
       wheelStatusIcon.style.backgroundColor = (v.wheelAlert || v.takeBreakAlert) ? red : defaultColor;
 
-
-      // --- Logic การจัดการเสียง (Priority & Fade Out) ---
       const soundPriority = [
         { flag: v.eyeAlert,       id: 'EYES',  el: sndEyes  },
         { flag: v.phoneAlert,     id: 'PHONE', el: sndPhone }, 
@@ -525,7 +512,6 @@
       ];
 
       let soundToPlay = null;
-      // NEW: "Take a break" alert uses the "EYES" sound
       if (v.takeBreakAlert) {
         soundToPlay = { id: 'EYES', el: sndEyes };
       } else {
@@ -551,9 +537,7 @@
           currentAudioAlert = null; 
         }
       }
-      // --- (จบ Logic การจัดการเสียง) ---
-
-      // NEW: Update Score and Speed displays
+      
       scoreDisplay.textContent = Math.round(driverScore);
       speedDisplay.textContent = speedKPH.toFixed(1);
     }
@@ -596,7 +580,7 @@
 
         let eyeAlert=false,yawnAlert=false,handsAlert=false,phoneAlert=false,phone=false, wheelAlert=false;
         let faceLost=false, yawAlertText='', pitchAlertText='';
-        let reduceScore = false; // NEW: Flag to reduce score
+        let reduceScore = false;
 
         ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -616,7 +600,6 @@
               yawValue.textContent = finalYaw.toFixed(1);
             }
 
-            // --- YAW (หันซ้าย/ขวา) ---
             if (finalYaw > THRESH.YAW_LEFT) { 
                 if (yawLeftStart === null) yawLeftStart = now; 
                 yawRightStart = null; hasAlertedYawRight = false; 
@@ -636,7 +619,6 @@
                 yawRightStart = null; hasAlertedYawRight = false;
             }
 
-            // --- PITCH (ก้ม/เงย) ---
             if (finalPitch > THRESH.PITCH_DOWN) { 
                 if (pitchDownStart === null) pitchDownStart = now; 
                 if ((now - pitchDownStart) / 1000 > THRESH.PITCH_DOWN_SEC) {
@@ -662,7 +644,6 @@
               if (!hasAlertedEyes) { reduceScore = true; hasAlertedEyes = true; }
             }
           } else {
-            // NEW: If eyes just opened, reset the "Take Break" alert
             if (isEyeClosed) { isTakingBreakAlert = false; } 
             isEyeClosed = false; eyeStart = null; hasAlertedEyes = false;
           }
@@ -701,7 +682,6 @@
           handsStart = null; hasAlertedHands = false;
         }
 
-        // --- ตรวจจับโทรศัพท์ ---
         let phoneBoxes = []; 
         if (phoneReady && cocoSsdModel) {
           const predictions = await cocoSsdModel.detect(video);
@@ -745,24 +725,22 @@
         }
         phoneAlert = phone; 
 
-        // --- *** BUG FIX: ตรรกะพวงมาลัยที่ถูกต้อง *** ---
-        if (!handsAlert && !phoneAlert) { // ถ้าไม่ได้ยืดแขน หรือเล่นมือถือ
-          if (handsOnScreen === 0) { // <--- ถ้าไม่พบมือเลย
-            if (wheelOffStart === null) wheelOffStart = now; // เริ่มจับเวลา
+        if (!handsAlert && !phoneAlert) {
+          if (handsOnScreen === 0) {
+            if (wheelOffStart === null) wheelOffStart = now;
             if ((now - wheelOffStart) / 1000 > THRESH.WHEEL_OFF_ALERT_SEC) {
-              wheelAlert = true; // แจ้งเตือน!
+              wheelAlert = true;
               if (!hasAlertedWheel) { reduceScore = true; hasAlertedWheel = true; }
             }
-          } else { // <--- ถ้าเห็นมือ (1 หรือ 2 ข้าง)
-            wheelOffStart = null; // รีเซ็ตเวลา
+          } else {
+            wheelOffStart = null;
             hasAlertedWheel = false;
           }
         } else {
-          wheelOffStart = null; // รีเซ็ตเวลา
+          wheelOffStart = null;
           hasAlertedWheel = false;
         }
         
-        // --- NEW: Scoring Logic ---
         if (driverScore <= 0) {
           isTakingBreakAlert = true;
         }
@@ -775,11 +753,9 @@
         const isSafe = !eyeAlert && !yawnAlert && !handsAlert && !phoneAlert && !wheelAlert && !faceLost && !yawAlertText && !pitchAlertText;
         
         if (isSafe && face && (now - scoreLastRegen > THRESH.SCORE_REGEN_COOLDOWN)) {
-          // ถ้าขับดี และคะแนนไม่เต็ม
           if (driverScore < 100) {
             driverScore = Math.min(100, driverScore + THRESH.SCORE_REGEN_AMOUNT);
           }
-          // ถ้าคะแนนเต็ม 100 และกำลังมี alert "พักผ่อน" ให้ปิด alert นั้น
           if (driverScore >= 100) {
             isTakingBreakAlert = false;
           }
@@ -789,7 +765,7 @@
         updateStatusIcons({ 
           eyeAlert, yawnAlert, handsAlert, phoneAlert, wheelAlert, 
           faceLost, yawAlertText, pitchAlertText, 
-          takeBreakAlert: isTakingBreakAlert // NEW
+          takeBreakAlert: isTakingBreakAlert
         });
 
       }catch(e){ console.error('loop error',e); }
@@ -835,6 +811,7 @@
       } finally { btnCalib.disabled = false; }
     });
 
+    // === btnToggle (MODIFIED) ===
     btnToggle.addEventListener('click', async ()=>{
       if(!isRunning){
         [sndEyes,sndYawn,sndPhone,sndWheel,sndLook].forEach(a=>{ a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{}); });
@@ -850,7 +827,6 @@
           }
           isRunning = true; btnToggle.textContent='Stop';
           
-          // NEW: Reset Score and Start Speed Watcher
           driverScore = 100;
           isTakingBreakAlert = false;
           watchSpeed();
@@ -873,8 +849,8 @@
           yawValue.textContent = '0.0';
         }
         
-        // NEW: Stop Speed Watcher
-        stopWatchSpeed();
+        stopWatchSpeed(); // นี่จะตั้ง speedKPH = 0
+        speedDisplay.textContent = speedKPH.toFixed(1); // *** MODIFICATION: อัปเดตหน้าจอเป็น 0.0 ทันที ***
         
         stopAllSoundsNow(); 
         const s = video.srcObject; if(s){ s.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
