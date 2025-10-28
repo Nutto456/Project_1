@@ -27,173 +27,37 @@
     @media (max-width: 768px){ .video-wrap{ max-width:100%; aspect-ratio: unset; height: calc(100dvh - 120px); } }
     #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     #overlay { position: absolute; inset: 0; transform: scaleX(-1); }
-    .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; } /* Keep z-index lower */
+    .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; }
     .status-badge { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; }
-
-    .indicator-group {
-      position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(8px); border-radius: 0.5rem;
-    }
+    .indicator-group { position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; gap: 0.5rem; padding: 0.5rem; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border-radius: 0.5rem; }
     .indicator-group svg { color: white; }
-
-    .indicator-score-group {
-      position: fixed;
-      top: 5rem;
-      right: 1rem;
-      z-index: 50;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(8px);
-      border-radius: 0.5rem;
-      color: white;
-      font-size: 0.875rem;
-      min-width: 100px;
-    }
-    .indicator-score-item {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      font-weight: 600;
-    }
-    .indicator-score-item span:first-child {
-      font-weight: 400;
-      color: #cbd5e1; /* slate-300 */
-    }
-    .indicator-score-item span:last-child {
-      font-weight: 700;
-    }
-
-    /* CORRECTED: Alert Popup as Bottom Bar ABOVE action bar */
-    .alert-popup {
-      position: fixed;
-      /* Position above action bar (approx height 4rem + 1rem bottom + gap 0.5rem = ~5.5rem from bottom) */
-      inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; /* Adjust 4.5rem as needed */
-      z-index: 70; /* Higher than action-bar */
-      display: none;
-      /* No centering needed */
-      /* No backdrop needed */
-    }
+    .indicator-score-group { position: fixed; top: 5rem; right: 1rem; z-index: 50; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border-radius: 0.5rem; color: white; font-size: 0.875rem; min-width: 100px; }
+    .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
+    .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; }
+    .indicator-score-item span:last-child { font-weight: 700; }
+    .alert-popup { position: fixed; inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; z-index: 70; display: none; }
     .dark .alert-popup { background: none; }
-
-    .alert-popup.show {
-      display: block; /* Show as block */
-    }
-
-    /* Style the card within the popup container */
-    .alert-popup .card {
-      padding: 0.75rem 1.25rem;
-      border-radius: 0.75rem;
-      text-align: center; /* Center text within the card */
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      backdrop-filter: blur(8px);
-      /* Default background for light mode (used when no success/error/warning) */
-      background-color: rgba(226, 232, 240, 0.85); /* slate-200 */
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-    .dark .alert-popup .card {
-      /* Default background for dark mode */
-      background-color: rgba(30, 41, 59, 0.85); /* slate-800 */
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-
+    .alert-popup.show { display: block; }
+    .alert-popup .card { padding: 0.75rem 1.25rem; border-radius: 0.75rem; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); backdrop-filter: blur(8px); background-color: rgba(226, 232, 240, 0.85); border: 1px solid rgba(0,0,0,0.05); }
+    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255,255,255,0.1); }
     .alert-popup .card.success { background-color: #10b981; border: none; }
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
-
-    /* Text on colored backgrounds (Success, Error, Warning) */
-    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2,
-    .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p {
-        color: white; /* Force ALL text to white */
-        opacity: 1; /* Ensure full opacity */
-    }
-    /* Optional: Slightly dim subtext */
-    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText {
-        opacity: 0.9;
-    }
-     /* Style size/margin/opacity for last paragraph on colored backgrounds */
-     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child {
-       color: white; /* Ensure it stays white */
-       opacity: 0.85; /* Adjust opacity as needed */
-       font-size: 0.875rem;
-       margin-top: 0.5rem;
-     }
-
-
-     /* Text on default backgrounds (Light/Dark mode, no specific type) */
-    .alert-popup .card h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #1e293b; /* slate-800 */
-      margin-bottom: 0.1rem;
-    }
-    .dark .alert-popup .card h2 { color: #f1f5f9; /* slate-100 */}
-
-    .alert-popup .card p { /* Styles for p tags on default bg */
-      color: #475569; /* slate-600 */
-      font-size: 0.875rem;
-    }
-    .dark .alert-popup .card p { color: #cbd5e1; /* slate-300 */}
-
-    /* Size/margin/color for last paragraph on default bg */
-    .alert-popup .card p:last-child {
-      font-size: 0.75rem;
-      margin-top: 0.4rem;
-      color: #64748b; /* slate-500 */
-    }
-    /* CORRECTION: Force last P white in dark mode default card */
-    .dark .alert-popup .card p:last-child {
-       color: #cbd5e1; /* Revert back to lighter gray for default dark card */
-       /* If you want it pure white always, uncomment the line below */
-       /* color: white; */
-       opacity: 0.8;
-    }
-
-    /* --- เพิ่ม: สไตล์สำหรับ Setup Modal --- */
-    #setupModal {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: flex; /* แสดง modal นี้โดย default */
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      background-color: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
-    }
-    #setupModal .card {
-      width: 100%;
-      max-width: 400px;
-      padding: 1.5rem 2rem;
-      border-radius: 0.75rem;
-      background-color: white;
-      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-    }
-    .dark #setupModal .card {
-      background-color: #1e293b; /* slate-800 */
-    }
-    #setupModal input[type="email"] {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.375rem;
-      border: 1px solid #cbd5e1; /* slate-300 */
-      background-color: white;
-      color: #1e293b; /* slate-800 */
-    }
-    .dark #setupModal input[type="email"] {
-      border-color: #475569; /* slate-600 */
-      background-color: #334155; /* slate-700 */
-      color: #f1f5f9; /* slate-100 */
-    }
-    #setupModal input[type="email"]:focus {
-      outline: 2px solid #4f46e5; /* indigo-600 */
-      border-color: transparent;
-    }
-
-
+    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2, .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p { color: white; opacity: 1; }
+    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText { opacity: 0.9; }
+    .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child { color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem; }
+    .alert-popup .card h2 { font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.1rem; }
+    .dark .alert-popup .card h2 { color: #f1f5f9; }
+    .alert-popup .card p { color: #475569; font-size: 0.875rem; }
+    .dark .alert-popup .card p { color: #cbd5e1; }
+    .alert-popup .card p:last-child { font-size: 0.75rem; margin-top: 0.4rem; color: #64748b; }
+    .dark .alert-popup .card p:last-child { color: #cbd5e1; opacity: 0.8; }
+    #setupModal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); }
+    #setupModal .card { width: 100%; max-width: 400px; padding: 1.5rem 2rem; border-radius: 0.75rem; background-color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+    .dark #setupModal .card { background-color: #1e293b; }
+    #setupModal input[type="email"] { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: 1px solid #cbd5e1; background-color: white; color: #1e293b; }
+    .dark #setupModal input[type="email"] { border-color: #475569; background-color: #334155; color: #f1f5f9; }
+    #setupModal input[type="email"]:focus { outline: 2px solid #4f46e5; border-color: transparent; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
 
@@ -201,27 +65,9 @@
 
 <body class="bg-white dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
 
-  <div id="setupModal">
-    <div class="card">
-      <h2 class="text-xl font-bold text-center mb-2 text-slate-900 dark:text-white">ตั้งค่าก่อนใช้งาน</h2>
-      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">กรุณาระบุอีเมลผู้ติดต่อฉุกเฉิน (SOS) 1 ท่าน เพื่อดำเนินการต่อ</p>
+  <div id="setupModal"> <div class="card"> <h2 class="text-xl font-bold text-center mb-2 text-slate-900 dark:text-white">ตั้งค่าก่อนใช้งาน</h2> <p class="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">กรุณาระบุอีเมลผู้ติดต่อฉุกเฉิน (SOS) 1 ท่าน เพื่อดำเนินการต่อ</p> <div class="space-y-3"> <div> <label for="sosEmailInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">อีเมลผู้ติดต่อ (Email)</label> <input type="email" id="sosEmailInput" placeholder="example@email.com" /> </div> <button id="btnSaveEmail" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow disabled:bg-indigo-400"> บันทึกและเริ่มใช้งาน </button> </div> </div> </div>
 
-      <div class="space-y-3">
-        <div>
-          <label for="sosEmailInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">อีเมลผู้ติดต่อ (Email)</label>
-          <input type="email" id="sosEmailInput" placeholder="example@email.com" />
-        </div>
-        <button id="btnSaveEmail" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow disabled:bg-indigo-400">
-          บันทึกและเริ่มใช้งาน
-        </button>
-      </div>
-    </div>
-  </div>
-
-
-  <div class="fixed top-4 left-4 z-50">
-    <button id="btnTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"> <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-3.833 2.067-7.17 5.218-8.981a.75.75 0 01.819.162z" clip-rule="evenodd" /> </svg> <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75-.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061L6.166 5.106z" /> </svg> </button>
-  </div>
+  <div class="fixed top-4 left-4 z-50"> <button id="btnTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"> <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-3.833 2.067-7.17 5.218-8.981a.75.75 0 01.819.162z" clip-rule="evenodd" /> </svg> <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75-.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061L6.166 5.106z" /> </svg> </button> </div>
 
   <main class="mx-auto max-w-5xl p-4">
     <header class="mb-3 text-center"> <h1 class="text-2xl font-bold">Real-time Driver Monitoring System</h1> <p class="text-slate-500 dark:text-slate-400 text-sm">ตรวจจับการขับขี่ในแบบเรียลไทม์</p> </header>
@@ -326,22 +172,22 @@
       }
     }
 
-    // --- ฟังก์ชันสำหรับ Logic การส่ง SOS ---
-    async function sendSOSLogic() {
-      console.log("sendSOSLogic called. Current Coords:", currentCoords, "SOS Email:", sosEmail);
+    // --- ฟังก์ชันสำหรับ Logic การส่ง SOS (แก้ไข) ---
+    async function sendSOSLogic(isAuto = false) { // <-- เพิ่ม isAuto
+      console.log(`sendSOSLogic called (isAuto: ${isAuto}). Current Coords:`, currentCoords, "SOS Email:", sosEmail);
       if (!sosEmail) {
         console.error("SOS Error: ไม่พบอีเมลผู้ติดต่อฉุกเฉิน!");
+        if (!isAuto) alert("SOS ล้มเหลว: ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ!"); // Alert เฉพาะ Manual
         return false;
       }
       if (!currentCoords) {
-        console.warn("SOS Warning: กำลังรอสัญญาณ GPS...");
-        alert("กำลังรอสัญญาณ GPS สำหรับ SOS...");
+        console.warn("SOS Warning: ยังไม่มีข้อมูล GPS ล่าสุด...");
+        if (!isAuto) alert("ยังไม่มีข้อมูล GPS ล่าสุด กรุณาลองอีกครั้ง หรือตรวจสอบสัญญาณ GPS"); // Alert เฉพาะ Manual
         return false;
       }
 
       const { lat, lon } = currentCoords;
-      // const mapLink = `https://www.google.com/maps?q=${lat},${lon}`; // <-- แก้ไข Link Format
-      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`; // <-- ใช้ Format ที่ถูกต้อง
+      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`; // <-- Link Format ที่ถูกต้อง
       const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ';
 
       const templateParams = {
@@ -363,7 +209,8 @@
         return true;
       } catch (error) {
         console.error('SOS Email FAILED...', error);
-        alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
+        // Alert เฉพาะ Manual
+        if (!isAuto) alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
         return false;
       }
     }
@@ -414,16 +261,17 @@
       if(v.faceLost){alerts.push(alertMessages.faceLost.m);lvl='error';}
       if(v.yawnAlert){alerts.push(alertMessages.yawnAlert.m);if(lvl==='none')lvl='success';}
 
-      // --- เพิ่ม: ตรรกะ Auto SOS ---
+      // --- แก้ไข: ตรรกะ Auto SOS (ไม่ Alert ถ้า GPS ไม่พร้อม) ---
       if (v.takeBreakAlert && !autoSosSent) {
         console.log("Score reached 0. Attempting Auto SOS...");
-        sendSOSLogic().then(success => {
+        // Pass true for automatic trigger
+        sendSOSLogic(true).then(success => {
           if (success) {
-            autoSosSent = true;
+            autoSosSent = true; // Set flag ONLY if successful
             console.log("Auto SOS sent successfully.");
              if(alertSubTextEl.textContent) { alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)"; }
              else { alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)"; }
-             if(!alertBox.classList.contains('show')) {
+             if(!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) {
                 alertTextEl.textContent = alertMessages.takeBreak.m;
                 alertSubTextEl.textContent = alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)";
                 alertCard.className = 'card error';
@@ -433,7 +281,8 @@
                  alertCard.classList.add('error');
              }
           } else {
-             console.error("Auto SOS failed.");
+             console.warn("Auto SOS failed (likely waiting for GPS). Will retry on next update.");
+             // Do NOT set autoSosSent = true, so it will retry
           }
         });
       }
@@ -504,20 +353,21 @@
       }
     });
 
+    // --- แก้ไข: Listener ปุ่ม SOS (ใช้ async/await, ผ่าน isAuto=false) ---
     btnSos.addEventListener('click', async () => {
       btnSos.disabled = true;
       btnSos.textContent = 'กำลังส่ง...';
-      const success = await sendSOSLogic();
+      const success = await sendSOSLogic(false); // <-- ส่ง false สำหรับ Manual
       if(success){ alert(`ส่งแจ้งเตือน SOS ไปยัง ${sosEmail} สำเร็จ!`); }
       // เปิดปุ่ม SOS คืนเสมอ
       btnSos.disabled = false;
       btnSos.textContent = 'SOS';
     });
 
-    // --- แก้ไข: Listener ปุ่ม Calibrate ---
+    // --- แก้ไข: Listener ปุ่ม Calibrate (กดได้ตลอด) ---
     btnCalib.addEventListener('click', async ()=>{
-      // เอา if(!isRunning) ออก
-      btnCalib.disabled = true; // ปิดปุ่มชั่วคราวระหว่าง Calibrate
+      btnCalib.disabled = true; // ปิดปุ่มชั่วคราว
+      btnCalib.textContent = 'Calibrating...'; // เปลี่ยนข้อความชั่วคราว
       alertBox.classList.remove('show');
       try{
         if(!video.srcObject)await startCam();
@@ -541,11 +391,10 @@
           alertTextEl.textContent='ไม่พบหน้า • ขยับให้อยู่กลางภาพ/เพิ่มแสง';
           alertCard.classList.remove('success'); alertCard.classList.add('error');
           alertBox.classList.add('show');
-          // ไม่ return ที่นี่แล้ว เพื่อให้ finally ทำงานและเปิดปุ่มคืน
         } else {
           pitchOffset=lastP.pitch; yawOffset=lastP.yaw;
           calibrated=true;
-          if (!isRunning) btnToggle.disabled = false; // เปิดปุ่ม Start ถ้ายังไม่ได้กด Start
+          if (!isRunning) btnToggle.disabled = false; // เปิดปุ่ม Start ถ้ายังไม่เริ่ม
           canvas.style.outline='3px solid #10b981';
           setTimeout(()=>{canvas.style.outline='none';},520);
           alertTextEl.textContent='Calibrated! พร้อมเริ่มใช้งาน';
@@ -554,12 +403,13 @@
           setTimeout(()=>alertBox.classList.remove('show'),2200);
         }
       } finally {
-        // เปิดปุ่ม Calib คืนเสมอ ไม่ว่าจะสำเร็จหรือไม่
+        // เปิดปุ่ม Calib คืนเสมอ
         btnCalib.disabled = false;
+        btnCalib.textContent = 'Calibrate'; // คืนข้อความเดิม
       }
     });
 
-    // --- แก้ไข: Listener ปุ่ม Start/Stop (เอาส่วน disable btnCalib ออก) ---
+    // --- แก้ไข: Listener ปุ่ม Start/Stop (ไม่ disable Calib/SOS) ---
     btnToggle.addEventListener('click', async ()=>{
       if(!isRunning){
         [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});});
@@ -573,7 +423,7 @@
           // btnSos.disabled = true; // <-- เอาออก
           btnTogglePose.disabled = true; // ปิดปุ่ม Pose ขณะทำงาน
           driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
-          // watchSpeed(); // <-- ย้ายไป btnSaveEmail แล้ว
+          // watchSpeed(); // <-- ย้ายไปแล้ว
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
           scheduleNext(loop);
         }catch(e){
