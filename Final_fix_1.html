@@ -15,6 +15,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+  
+  <script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
     :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
@@ -192,7 +195,8 @@
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
-  </head>
+  
+</head>
 
 <body class="bg-white dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
 
@@ -366,6 +370,20 @@
     const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
     const rad2deg=(r)=>r*57.2957795;
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    
+    // --- เพิ่ม: ฟังก์ชัน khởi tạo EmailJS ---
+    function initializeEmailJS() {
+      // ###############################################################
+      // ### แก้ไข: ใส่ PUBLIC KEY (USER ID) ของคุณที่นี่ ###
+      // ###############################################################
+      try {
+        emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" });
+        console.log("EmailJS Initialized.");
+      } catch (e) {
+        console.error("Failed to initialize EmailJS:", e);
+      }
+    }
+
 
     // === Sound Functions ===
     function playAlertSound(id, el) { if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];} if(currentAudioAlert!==id)stopAllSoundsNow(id); el.loop=true; el.volume=1.0; el.play().catch(()=>{}); currentAudioAlert=id; }
@@ -385,7 +403,9 @@
     const EYE_L=[33,160,158,133,153,144], EYE_R=[263,387,385,362,380,373]; const MOUTH_TOP=13,MOUTH_BOTTOM=14,MOUTH_LEFT=61,MOUTH_RIGHT=291;
     const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y); const ear=(lm,i)=>(dist(lm[i[1]],lm[i[5]])+dist(lm[i[2]],lm[i[4]]))/(2*dist(lm[i[0]],lm[i[3]])); const marSimple=(lm)=>dist(lm[MOUTH_TOP],lm[MOUTH_BOTTOM])/(dist(lm[MOUTH_LEFT],lm[MOUTH_RIGHT])+1e-6);
     function eulerFromR(r){ const r00=r[0],r01=r[1],r02=r[2],r10=r[3],r11=r[4],r12=r[5],r20=r[6],r21=r[7],r22=r[8]; const sy=Math.hypot(r00,r10); let p,y,rl; if(sy>1e-6){p=Math.atan2(-r20,sy);y=Math.atan2(r10,r00);rl=Math.atan2(r21,r22);}else{p=Math.atan2(-r20,sy);y=Math.atan2(-r01,r11);rl=0;} return {pitch:rad2deg(p),yaw:rad2deg(y),roll:rad2deg(rl)}; }
+    
     function poseFromMatrixAuto(m4){ if(!m4) return null; const a=Array.from(m4); if(a.length<16)return null; const Rr=[a[0],a[1],a[2],a[4],a[5],a[6],a[8],a[9],a[10]], Rc=[a[0],a[4],a[8],a[1],a[5],a[9],a[2],a[6],a[10]]; const er=eulerFromR(Rr),ec=eulerFromR(Rc); const mr=Math.abs(er.pitch)+Math.abs(er.yaw)+Math.abs(er.roll), mc=Math.abs(ec.pitch)+Math.abs(ec.yaw)+Math.abs(ec.roll); const uc=mc>mr*1.1; const e=uc?ec:er; return {pitch:clamp(e.pitch,-60,60),yaw:clamp(e.yaw,-90,90),roll:clamp(e.roll,-60,60)}; }
+    
     function poseSimple(lm){ const L=lm[33],R=lm[263],N=lm[1]; if(!L||!R||!N) return null; const mX=(L.x+R.x)/2,mY=(L.y+R.y)/2; const y=(N.x-mX)*260, p=(mY-N.y)*360; return {pitch:clamp(p,-60,66),yaw:clamp(y,-90,90),roll:0}; }
     function resizeCanvas(){ const w=video.videoWidth||640,h=video.videoHeight||480; canvas.width=w;canvas.height=h; }
     window.addEventListener('resize',()=>{if(video?.videoWidth)resizeCanvas();});
@@ -567,38 +587,73 @@
       }
     });
 
-    // --- เพิ่ม: Listener สำหรับปุ่ม SOS ---
+    // --- แก้ไข: Listener สำหรับปุ่ม SOS (ใช้ EmailJS) ---
     btnSos.addEventListener('click', () => {
-      if (!sosEmail) { // ไม่ควรเกิดขึ้น แต่เช็กไว้ก่อน
+      // 0. ปิดปุ่มชั่วคราว ป้องกันการกดซ้ำ
+      btnSos.disabled = true;
+      btnSos.textContent = 'กำลังส่ง...';
+
+      // 1. ตรวจสอบข้อมูล
+      if (!sosEmail) {
         alert("ไม่พบอีเมลผู้ติดต่อฉุกเฉิน! กรุณารีเฟรช");
+        btnSos.disabled = false;
+        btnSos.textContent = 'SOS';
         return;
       }
       if (!currentCoords) {
         alert("กำลังรอสัญญาณ GPS... กรุณาลองอีกครั้งในสักครู่ หรือตรวจสอบว่าเปิด GPS แล้ว");
+        btnSos.disabled = false;
+        btnSos.textContent = 'SOS';
         return;
       }
 
+      // 2. เตรียมข้อมูล (Template Params)
       const { lat, lon } = currentCoords;
-      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
-      
-      const message = `
-        --- จำลองการส่ง SOS ---
-        ส่งแจ้งเตือนฉุกเฉินไปยัง: ${sosEmail}
-        ตำแหน่งล่าสุดของคุณ:
-        ${mapLink}
-        (ความแม่นยำ: ${currentCoords.accuracy?.toFixed(1)} เมตร)
-        -------------------------
-      `;
-      console.log(message);
-      alert(message); // แสดง alert จำลองการส่ง
-      
-      // *** ขั้นต่อไป: เราจะเพิ่มโค้ด EmailJS ที่นี่เพื่อส่งจริงๆ ***
+      const mapLink = `http://googleusercontent.com/maps/place/${lat},${lon}`;
+      const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ';
+
+      const templateParams = {
+        // to_email: sosEmail, // EmailJS จะใช้ค่า "To Email" จาก Template โดยตรง
+        // เราสามารถส่ง `to_email` ไป override ได้ถ้าต้องการ แต่ template ของคุณน่าจะตั้งค่าไว้แล้ว
+        // ถ้าคุณตั้งชื่อตัวแปรใน template ว่า `to_email` ให้เปิดบรรทัดนี้:
+        // to_email: sosEmail, 
+        
+        // นี่คือตัวแปรที่เราสร้างไว้ใน template ({{map_link}} และ {{accuracy}})
+        map_link: mapLink,
+        accuracy: accuracy
+      };
+
+      // 3. เรียกใช้ EmailJS
+      // ###############################################################
+      // ### แก้ไข: ใส่ SERVICE ID และ TEMPLATE ID ของคุณที่นี่ ###
+      // ###############################################################
+      const SERVICE_ID = "service_d3q6ubr";
+      const TEMPLATE_ID = "template_d76czdh";
+
+      emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams)
+        .then(
+          (response) => {
+            console.log('SOS Email SUCCESS!', response.status, response.text);
+            alert(`ส่งแจ้งเตือน SOS ไปยัง ${sosEmail} สำเร็จ!`);
+          },
+          (error) => {
+            console.error('SOS Email FAILED...', error);
+            // เพิ่ม: แสดงข้อความ alert ที่มีประโยชน์มากขึ้น
+            alert(`ส่งแจ้งเตือน SOS ล้มเหลว!\nError: ${JSON.stringify(error)}`);
+          }
+        )
+        .finally(() => {
+            // 4. เปิดปุ่มคืน ไม่ว่าจะสำเร็จหรือล้มเหลว
+            // (ถ้ากำลังทำงานอยู่ ปุ่มจะถูกปิดอีกครั้งใน loop ถัดไป)
+            if (!isRunning) {
+                btnSos.disabled = false;
+            }
+            btnSos.textContent = 'SOS';
+        });
     });
 
 
     btnCalib.addEventListener('click', async ()=>{ 
-      // แก้ไข: ไม่ต้องเช็ก sosEmail ที่นี่แล้ว เพราะปุ่ม Calib จะถูก disable ไว้แต่แรก
-      
       if(!isRunning)btnCalib.disabled=true; 
       alertBox.classList.remove('show'); 
       try{ 
@@ -640,13 +695,13 @@
         alertBox.classList.add('show');
         setTimeout(()=>alertBox.classList.remove('show'),2200); 
       }finally{
-        if(!calibrated) btnCalib.disabled=false; // คืนปุ่ม Calib ถ้าล้มเหลว
+        // แก้ไข: ถ้าล้มเหลว, คืนปุ่ม Calib (ถ้ายังไม่ Calibrated)
+        if(!calibrated) btnCalib.disabled=false; 
       } 
     });
     
     btnToggle.addEventListener('click', async ()=>{ 
       if(!isRunning){ 
-        // ไม่ต้องเช็ก calibrated ที่นี่แล้ว เพราะปุ่ม Toggle จะถูก disable ไว้จนกว่า calibrated=true
         
         [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});}); 
         
@@ -658,7 +713,6 @@
         try{ 
           if(!video.srcObject)await startCam(); 
           if(!modelsReady)await initModels(); 
-          // if(!calibrated){...} // ลบออกได้เลย เพราะปุ่มถูก disabled อยู่แล้ว
           
           isRunning=true;
           btnToggle.textContent='Stop'; 
@@ -669,7 +723,7 @@
           driverScore=100;
           isTakingBreakAlert=false;
           hasPlayedScoreSound = false; 
-          watchSpeed(); 
+          watchSpeed(); // <-- เริ่มติดตาม GPS ตอนกด Start
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false; 
           
           scheduleNext(loop); 
@@ -679,7 +733,9 @@
           alertCard.classList.remove('success');
           alertCard.classList.add('error');
           alertBox.classList.add('show');
-          btnCalib.disabled=false; // คืนปุ่ม Calib ถ้าเริ่มไม่สำเร็จ
+          
+          // คืนปุ่ม Calib/SOS/Pose ถ้าเริ่มไม่สำเร็จ
+          btnCalib.disabled=false; 
           btnSos.disabled = false;
           btnTogglePose.disabled = false;
         } 
@@ -690,7 +746,7 @@
         calibrated = false; // บังคับ Calibrate ใหม่
 
         if(showPose){pitchValue.textContent='0.0';yawValue.textContent='0.0';} 
-        stopWatchSpeed();
+        stopWatchSpeed(); // <-- หยุดติดตาม GPS ตอนกด Stop
         speedDisplay.textContent=Math.round(speedKPH); 
         stopAllSoundsNow(); 
         
@@ -726,6 +782,7 @@
     // === Initialisation ===
     (async ()=>{ 
       try{
+        initializeEmailJS(); // <-- เรียกใช้ฟังก์ชัน khởi tạo EmailJS
         await startCam();
         await initModels();
       } catch {
