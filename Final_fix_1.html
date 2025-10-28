@@ -148,13 +148,71 @@
        opacity: 0.8;
     }
 
+    /* --- เพิ่ม: สไตล์สำหรับ Setup Modal --- */
+    #setupModal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex; /* แสดง modal นี้โดย default */
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+    }
+    #setupModal .card {
+      width: 100%;
+      max-width: 400px;
+      padding: 1.5rem 2rem;
+      border-radius: 0.75rem;
+      background-color: white;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+    }
+    .dark #setupModal .card {
+      background-color: #1e293b; /* slate-800 */
+    }
+    #setupModal input[type="email"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #cbd5e1; /* slate-300 */
+      background-color: white;
+      color: #1e293b; /* slate-800 */
+    }
+    .dark #setupModal input[type="email"] {
+      border-color: #475569; /* slate-600 */
+      background-color: #334155; /* slate-700 */
+      color: #f1f5f9; /* slate-100 */
+    }
+    #setupModal input[type="email"]:focus {
+      outline: 2px solid #4f46e5; /* indigo-600 */
+      border-color: transparent;
+    }
+
 
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
-  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-</head>
+  </head>
 
 <body class="bg-white dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
+
+  <div id="setupModal">
+    <div class="card">
+      <h2 class="text-xl font-bold text-center mb-2 text-slate-900 dark:text-white">ตั้งค่าก่อนใช้งาน</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">กรุณาระบุอีเมลผู้ติดต่อฉุกเฉิน (SOS) 1 ท่าน เพื่อดำเนินการต่อ</p>
+      
+      <div class="space-y-3">
+        <div>
+          <label for="sosEmailInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">อีเมลผู้ติดต่อ (Email)</label>
+          <input type="email" id="sosEmailInput" placeholder="example@email.com" />
+        </div>
+        <button id="btnSaveEmail" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow disabled:bg-indigo-400">
+          บันทึกและเริ่มใช้งาน
+        </button>
+      </div>
+    </div>
+  </div>
+
 
   <div class="fixed top-4 left-4 z-50">
     <button id="btnTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
@@ -220,9 +278,10 @@
     </div>
 
     <section class="action-bar flex gap-2">
-      <button id="btnCalib" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow flex-1 disabled:bg-indigo-400">Calibrate</button>
+      <button id="btnCalib" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow flex-1 disabled:bg-indigo-400" disabled>Calibrate</button>
       <button id="btnToggle" class="px-4 py-2 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-semibold shadow flex-1 disabled:bg-blue-400" disabled>Start</button>
-      <button id="btnTogglePose" class="px-4 py-2 rounded-xl text-white bg-gray-600 hover:bg-gray-700 font-semibold shadow flex-1">Show Pose</button>
+      <button id="btnTogglePose" class="px-4 py-2 rounded-xl text-white bg-gray-600 hover:bg-gray-700 font-semibold shadow flex-1" disabled>Show Pose</button>
+      <button id="btnSos" class="px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow flex-1 disabled:bg-red-400" disabled>SOS</button>
     </section>
     </main>
 
@@ -263,6 +322,12 @@
     const pitchValue = document.getElementById('pitchValue');
     const yawValue = document.getElementById('yawValue');
     const sndScore = document.getElementById('sndScore');
+    
+    // --- เพิ่ม: Elements สำหรับ Setup Modal และ SOS ---
+    const setupModal = document.getElementById('setupModal');
+    const btnSaveEmail = document.getElementById('btnSaveEmail');
+    const sosEmailInput = document.getElementById('sosEmailInput');
+    const btnSos = document.getElementById('btnSos');
 
     // === Config ===
     const THRESH = {
@@ -290,7 +355,11 @@
     let phoneLastSeenTime = null;
     let currentAudioAlert = null, fadeOutIntervals = {}, geolocationWatcher = null;
     let hasPlayedScoreSound = false; // ติดตามว่าเสียงคะแนนหมดเล่นไปหรือยัง
-    let scoreSoundTimeout = null; //  <-- เพิ่ม: ตัวแปรเก็บ Timeout ID
+    let scoreSoundTimeout = null; 
+    
+    // --- เพิ่ม: State สำหรับ SOS ---
+    let sosEmail = '';
+    let currentCoords = null; // { lat, lon, accuracy }
 
     // === Utils ===
     const ema = (p,v,a=0.35)=>(!Number.isFinite(v)?p:(p==null?v:a*v+(1-a)*p));
@@ -306,7 +375,6 @@
       for(const id in allSounds){if(id!==exceptId){const el=allSounds[id];if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];}el.pause();el.currentTime=0;el.volume=1.0;el.loop=false;}} 
       if(currentAudioAlert&&currentAudioAlert!==exceptId)currentAudioAlert=null;
       
-      // <-- เพิ่ม: ล้าง Timeout เมื่อหยุดเสียงทั้งหมด
       if (scoreSoundTimeout) {
           clearTimeout(scoreSoundTimeout);
           scoreSoundTimeout = null;
@@ -326,8 +394,31 @@
     async function startCam(){ try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false}); video.srcObject=st; await new Promise(r=>{if(video.readyState>=1)r(); else video.onloadedmetadata=()=>r();}); await video.play(); resizeCanvas();}catch(e){console.error(e);alertTextEl.textContent="ไม่สามารถเปิดกล้องได้";alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');btnCalib.disabled=false;throw e;}}
 
     // === GPS Speed Functions ===
-    function watchSpeed() { if(geolocationWatcher)navigator.geolocation.clearWatch(geolocationWatcher); const o={enableHighAccuracy:true,maximumAge:0}; geolocationWatcher=navigator.geolocation.watchPosition((p)=>{const s=p.coords.speed; speedKPH=(s||0)*3.6;},(e)=>{console.warn('GPS Error:',e.message);},o); }
-    function stopWatchSpeed() { if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH=0; } // Set 0 on stop
+    // --- แก้ไข: ให้ดึงพิกัด (Coords) ด้วย ---
+    function watchSpeed() {
+      if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher);
+      const o = { enableHighAccuracy: true, maximumAge: 0 };
+      geolocationWatcher = navigator.geolocation.watchPosition(
+        (p) => {
+          const s = p.coords.speed;
+          speedKPH = (s || 0) * 3.6;
+          // --- เพิ่ม: บันทึกพิกัด ---
+          currentCoords = {
+            lat: p.coords.latitude,
+            lon: p.coords.longitude,
+            accuracy: p.coords.accuracy
+          };
+        },
+        (e) => {
+          console.warn('GPS Error:', e.message);
+          currentCoords = null; // เคลียร์ค่าถ้ามีข้อผิดพลาด
+        }, o);
+    }
+    function stopWatchSpeed() {
+      if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;}
+      speedKPH = 0;
+      currentCoords = null; // เคลียร์ค่าเมื่อหยุด
+    }
 
     // === updateStatusIcons ===
     function updateStatusIcons(v){
@@ -363,11 +454,11 @@
               sndScore.play().catch(()=>{});
               hasPlayedScoreSound = true; // ตั้งค่าว่าเล่นแล้ว
               
-              // <-- เพิ่ม: ตั้งเวลา 10 วินาทีให้หยุดเสียง
+              // <-- เพิ่ม: ตั้งเวลา 30 วินาทีให้หยุดเสียง
               if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout); 
               scoreSoundTimeout = setTimeout(() => {
                   stopAlertSound('SCORE', sndScore); // เรียกฟังก์ชัน Fade out
-              }, 30000); // 10 วินาที
+              }, 30000); // <-- แก้ไขเป็น 30 วินาที
           }
           currentAudioAlert = 'SCORE'; // ตั้งสถานะเพื่อป้องกันเสียงอื่นเล่น
       } else {
@@ -458,54 +549,190 @@
     }
 
     // === Event Listeners ===
-    btnCalib.addEventListener('click', async ()=>{ if(!isRunning)btnCalib.disabled=true; alertBox.classList.remove('show'); try{ if(!video.srcObject)await startCam(); if(!modelsReady)await initModels(); const d=performance.now()+2000; let got=false,lastP=null; while(performance.now()<d){ const now=performance.now(); const resF=faceLandmarker?.detectForVideo?.(video,now); let cFace=resF?.faceLandmarks?.[0]; if(cFace){ const m4=resF?.facialTransformationMatrixes?.[0]; const pose=poseFromMatrixAuto(m4)||poseSimple(cFace); if(pose&&Number.isFinite(pose.pitch)&&Number.isFinite(pose.yaw)){lastP=pose;got=true;break;} } await new Promise(r=>requestAnimationFrame(r)); } if(!got){alertTextEl.textContent='ไม่พบหน้า • ขยับให้อยู่กลางภาพ/เพิ่มแสง';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');return;} pitchOffset=lastP.pitch;yawOffset=lastP.yaw;calibrated=true;btnToggle.disabled=false; canvas.style.outline='3px solid #10b981';setTimeout(()=>{canvas.style.outline='none';},520); alertTextEl.textContent='Calibrated! พร้อมเริ่มใช้งาน';alertCard.classList.remove('error');alertCard.classList.add('success');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200); }finally{btnCalib.disabled=false;} });
-    btnToggle.addEventListener('click', async ()=>{ if(!isRunning){ 
+
+    // --- เพิ่ม: Listener สำหรับปุ่มบันทึก Email ใน Modal ---
+    btnSaveEmail.addEventListener('click', () => {
+      const email = sosEmailInput.value;
+      // ตรวจสอบอีเมลแบบง่ายๆ
+      if (email && email.includes('@') && email.includes('.')) {
+        sosEmail = email;
+        setupModal.style.display = 'none'; // ซ่อน Modal
+        
+        // เปิดใช้งานปุ่มหลัก
+        btnCalib.disabled = false;
+        btnTogglePose.disabled = false;
+        btnSos.disabled = false;
+      } else {
+        alert('กรุณากรอกอีเมลให้ถูกต้อง (เช่น example@email.com)');
+      }
+    });
+
+    // --- เพิ่ม: Listener สำหรับปุ่ม SOS ---
+    btnSos.addEventListener('click', () => {
+      if (!sosEmail) { // ไม่ควรเกิดขึ้น แต่เช็กไว้ก่อน
+        alert("ไม่พบอีเมลผู้ติดต่อฉุกเฉิน! กรุณารีเฟรช");
+        return;
+      }
+      if (!currentCoords) {
+        alert("กำลังรอสัญญาณ GPS... กรุณาลองอีกครั้งในสักครู่ หรือตรวจสอบว่าเปิด GPS แล้ว");
+        return;
+      }
+
+      const { lat, lon } = currentCoords;
+      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+      
+      const message = `
+        --- จำลองการส่ง SOS ---
+        ส่งแจ้งเตือนฉุกเฉินไปยัง: ${sosEmail}
+        ตำแหน่งล่าสุดของคุณ:
+        ${mapLink}
+        (ความแม่นยำ: ${currentCoords.accuracy?.toFixed(1)} เมตร)
+        -------------------------
+      `;
+      console.log(message);
+      alert(message); // แสดง alert จำลองการส่ง
+      
+      // *** ขั้นต่อไป: เราจะเพิ่มโค้ด EmailJS ที่นี่เพื่อส่งจริงๆ ***
+    });
+
+
+    btnCalib.addEventListener('click', async ()=>{ 
+      // แก้ไข: ไม่ต้องเช็ก sosEmail ที่นี่แล้ว เพราะปุ่ม Calib จะถูก disable ไว้แต่แรก
+      
+      if(!isRunning)btnCalib.disabled=true; 
+      alertBox.classList.remove('show'); 
+      try{ 
+        if(!video.srcObject)await startCam(); 
+        if(!modelsReady)await initModels(); 
+        const d=performance.now()+2000; 
+        let got=false,lastP=null; 
+        while(performance.now()<d){ 
+          const now=performance.now(); 
+          const resF=faceLandmarker?.detectForVideo?.(video,now); 
+          let cFace=resF?.faceLandmarks?.[0]; 
+          if(cFace){ 
+            const m4=resF?.facialTransformationMatrixes?.[0]; 
+            const pose=poseFromMatrixAuto(m4)||poseSimple(cFace); 
+            if(pose&&Number.isFinite(pose.pitch)&&Number.isFinite(pose.yaw)){
+              lastP=pose;
+              got=true;
+              break;
+            } 
+          } 
+          await new Promise(r=>requestAnimationFrame(r)); 
+        } 
+        if(!got){
+          alertTextEl.textContent='ไม่พบหน้า • ขยับให้อยู่กลางภาพ/เพิ่มแสง';
+          alertCard.classList.remove('success');
+          alertCard.classList.add('error');
+          alertBox.classList.add('show');
+          return;
+        } 
+        pitchOffset=lastP.pitch;
+        yawOffset=lastP.yaw;
+        calibrated=true; 
+        btnToggle.disabled=false; // <-- เปิดปุ่ม Start เมื่อ Calibrate สำเร็จ
+        canvas.style.outline='3px solid #10b981';
+        setTimeout(()=>{canvas.style.outline='none';},520); 
+        alertTextEl.textContent='Calibrated! พร้อมเริ่มใช้งาน';
+        alertCard.classList.remove('error');
+        alertCard.classList.add('success');
+        alertBox.classList.add('show');
+        setTimeout(()=>alertBox.classList.remove('show'),2200); 
+      }finally{
+        if(!calibrated) btnCalib.disabled=false; // คืนปุ่ม Calib ถ้าล้มเหลว
+      } 
+    });
+    
+    btnToggle.addEventListener('click', async ()=>{ 
+      if(!isRunning){ 
+        // ไม่ต้องเช็ก calibrated ที่นี่แล้ว เพราะปุ่ม Toggle จะถูก disable ไว้จนกว่า calibrated=true
+        
         [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});}); 
         
-        // <-- เพิ่ม: ล้าง Timeout เมื่อกด Start (เผื่อค้าง)
         if (scoreSoundTimeout) {
             clearTimeout(scoreSoundTimeout);
             scoreSoundTimeout = null;
         }
 
-        try{ if(!video.srcObject)await startCam(); if(!modelsReady)await initModels(); if(!calibrated){alertTextEl.textContent='กด Calibrate ก่อนเริ่ม';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200);return;} 
-        isRunning=true;btnToggle.textContent='Stop'; 
-        driverScore=100;
-        isTakingBreakAlert=false;
-        hasPlayedScoreSound = false; // <-- เพิ่ม: รีเซ็ตสถานะเสียง
-        watchSpeed(); 
-        hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false; 
+        try{ 
+          if(!video.srcObject)await startCam(); 
+          if(!modelsReady)await initModels(); 
+          // if(!calibrated){...} // ลบออกได้เลย เพราะปุ่มถูก disabled อยู่แล้ว
+          
+          isRunning=true;
+          btnToggle.textContent='Stop'; 
+          btnCalib.disabled = true; // ปิดปุ่ม Calib/SOS/Pose ขณะทำงาน
+          btnSos.disabled = true;
+          btnTogglePose.disabled = true;
+
+          driverScore=100;
+          isTakingBreakAlert=false;
+          hasPlayedScoreSound = false; 
+          watchSpeed(); 
+          hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false; 
+          
+          scheduleNext(loop); 
+        }catch(e){
+          console.error(e);
+          alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต';
+          alertCard.classList.remove('success');
+          alertCard.classList.add('error');
+          alertBox.classList.add('show');
+          btnCalib.disabled=false; // คืนปุ่ม Calib ถ้าเริ่มไม่สำเร็จ
+          btnSos.disabled = false;
+          btnTogglePose.disabled = false;
+        } 
+      } else { 
+        isRunning=false;
+        btnToggle.textContent='Start'; 
+        btnToggle.disabled = true; // ปิดปุ่ม Start (ต้อง Calibrate ใหม่)
+        calibrated = false; // บังคับ Calibrate ใหม่
+
+        if(showPose){pitchValue.textContent='0.0';yawValue.textContent='0.0';} 
+        stopWatchSpeed();
+        speedDisplay.textContent=Math.round(speedKPH); 
+        stopAllSoundsNow(); 
         
-        // <-- เพิ่ม: เปิดใช้งานปุ่มอีกครั้ง
+        isTakingBreakAlert = false;
+        hasPlayedScoreSound = false;
+
+        // เปิดปุ่ม Calib/SOS/Pose คืน
         btnCalib.disabled = false;
+        btnSos.disabled = false;
         btnTogglePose.disabled = false;
 
-        scheduleNext(loop); 
-      }catch(e){console.error(e);alertTextEl.textContent='เริ่มไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');btnCalib.disabled=false;} 
-    } else { 
-      isRunning=false;
-      btnToggle.textContent='Start'; 
-      if(showPose){pitchValue.textContent='0.0';yawValue.textContent='0.0';} 
-      stopWatchSpeed();
-      speedDisplay.textContent=Math.round(speedKPH); 
-      stopAllSoundsNow(); // <-- การเรียกฟังก์ชันนี้จะล้าง Timeout ด้วย
-      
-      // <-- เพิ่ม: รีเซ็ตสถานะทั้งหมด
-      isTakingBreakAlert = false;
-      hasPlayedScoreSound = false;
-
-      // <-- เพิ่ม: เปิดใช้งานปุ่มอีกครั้ง
-      btnCalib.disabled = false;
-      btnTogglePose.disabled = false;
-
-      const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;} 
-      ctx.clearRect(0,0,canvas.width,canvas.height); 
-      alertTextEl.textContent='หยุดการตรวจจับ';alertCard.classList.remove('success');alertCard.classList.add('error');alertBox.classList.add('show');setTimeout(()=>alertBox.classList.remove('show'),2200); 
-    } });
-    btnTogglePose.addEventListener('click',()=>{ showPose=!showPose; poseDisplay.style.display=showPose?'flex':'none'; yawDisplay.style.display=showPose?'flex':'none'; btnTogglePose.textContent=showPose?'Hide Pose':'Show Pose'; btnTogglePose.classList.toggle('bg-gray-600',!showPose);btnTogglePose.classList.toggle('hover:bg-gray-700',!showPose); btnTogglePose.classList.toggle('bg-green-600',showPose);btnTogglePose.classList.toggle('hover:bg-green-700',showPose); });
+        const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;} 
+        ctx.clearRect(0,0,canvas.width,canvas.height); 
+        alertTextEl.textContent='หยุดการตรวจจับ';
+        alertCard.classList.remove('success');
+        alertCard.classList.add('error');
+        alertBox.classList.add('show');
+        setTimeout(()=>alertBox.classList.remove('show'),2200); 
+      } 
+    });
+    
+    btnTogglePose.addEventListener('click',()=>{ 
+      showPose=!showPose; 
+      poseDisplay.style.display=showPose?'flex':'none'; 
+      yawDisplay.style.display=showPose?'flex':'none'; 
+      btnTogglePose.textContent=showPose?'Hide Pose':'Show Pose'; 
+      btnTogglePose.classList.toggle('bg-gray-600',!showPose);
+      btnTogglePose.classList.toggle('hover:bg-gray-700',!showPose); 
+      btnTogglePose.classList.toggle('bg-green-600',showPose);
+      btnTogglePose.classList.toggle('hover:bg-green-700',showPose); 
+    });
 
     // === Initialisation ===
-    (async ()=>{ try{await startCam();await initModels();}catch{} })();
+    (async ()=>{ 
+      try{
+        await startCam();
+        await initModels();
+      } catch {
+        // ถ้าล้มเหลว, ซ่อน modal เพื่อให้เห็นข้อความ error บน alertBox
+        setupModal.style.display = 'none';
+      }
+    })();
   </script>
 
   <script>
