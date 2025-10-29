@@ -265,6 +265,9 @@
     let autoSosSent = false;
     let alertTimeoutId = null;
     let isSosAlertActive = false;
+    
+    // === (เพิ่ม) State สำหรับ Share ===
+    let isSharing = false; 
 
     // === Utils ===
     const ema = (p,v,a=0.35)=>(!Number.isFinite(v)?p:(p==null?v:a*v+(1-a)*p));
@@ -272,6 +275,7 @@
     const rad2deg=(r)=>r*57.2957795;
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
+    // === **** (ฟังก์ชัน showAlert ที่แก้ไข Bug แล้ว) **** ===
     function showAlert(title, subtext, type, duration = 3000) {
       if (alertTimeoutId) { clearTimeout(alertTimeoutId); alertTimeoutId = null; }
       alertTextEl.textContent = title;
@@ -280,31 +284,37 @@
       alertBox.classList.add('show');
       
       isSosAlertActive = (title === 'ส่ง SOS สำเร็จ!' || title === 'ส่ง SOS ล้มเหลว!');
+      
+      // ตรวจสอบ isShareAlert ภายนอก setTimeout
+      const isShareAlert = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(title);
 
       if (duration > 0) {
-        const expectedTitle = title;
+        const expectedTitle = title; // ใช้ title ที่เข้ามาตอนแรกในการตรวจสอบ
         alertTimeoutId = setTimeout(() => {
-          // (แก้ไข) เพิ่มการตรวจสอบสถานะของ Share Alert
-          const isShareAlert = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(expectedTitle);
+          
           if (alertTextEl.textContent === expectedTitle) { 
             alertBox.classList.remove('show'); 
-            if (isSosAlertActive) {
-                isSosAlertActive = false;
-                if (isRunning) loop();
-            }
-            // (เพิ่ม) ถ้า Alert ที่หายไป *ไม่ใช่* Alert ความเสี่ยง (เช่น ไม่ใช่ SOS, ไม่ใช่ Share)
-            // และ *ไม่ใช่* Alert ความเสี่ยงที่ยังค้างอยู่ -> ให้บังคับ loop ทำงาน
-            // นี่เป็นการแก้ไขบั๊กที่ Alert พฤติกรรมอาจไม่เด้งทันทีหลัง Share Alert หายไป
-            else if (!isShareAlert && isRunning) {
-                loop();
+            
+            // <--- นี่คือบรรทัดที่แก้ไข (1)
+            // สั่งล้างข้อความออกไปด้วย เมื่อ Popup หาย
+            alertTextEl.textContent = ''; 
+            
+            // <--- นี่คือบรรทัดที่แก้ไข (2)
+            // ถ้า Alert ที่เพิ่งหายไปเป็น SOS หรือ Share ให้บังคับ loop() ทำงานทันที
+            // เพื่อให้ Alert พฤติกรรม (ถ้ามี) แสดงขึ้นมาได้เลย
+            if ((isSosAlertActive || isShareAlert) && isRunning) {
+                isSosAlertActive = false; // รีเซ็ตธง SOS
+                loop(); // บังคับให้ loop ทำงานใหม่
             }
           }
           alertTimeoutId = null;
         }, duration);
       } else {
+        // สำหรับ Alert ค้าง (duration = 0)
         alertTimeoutId = null; 
       }
     }
+    // === **** (จบฟังก์ชัน showAlert ที่แก้ไข Bug แล้ว) **** ===
 
     function initializeEmailJS() { /* ... (เหมือนเดิม) ... */ try { emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" }); console.log("EmailJS Initialized."); } catch (e) { console.error("Failed to initialize EmailJS:", e); showAlert("SOS Error", "ตั้งค่า EmailJS ล้มเหลว", "error", 5000); } }
 
@@ -348,7 +358,7 @@
     function watchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher); const o = { enableHighAccuracy: true, maximumAge: 0 }; geolocationWatcher = navigator.geolocation.watchPosition( (p) => { const s = p.coords.speed; speedKPH = (s || 0) * 3.6; currentCoords = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy }; }, (e) => { console.warn('GPS Error:', e.message); currentCoords = null; }, o); }
     function stopWatchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH = 0; currentCoords = null; }
 
-    // === updateStatusIcons (โค้ดที่แก้ไขการจัดการ Popup/เสียง) ===
+    // === (แก้ไข) updateStatusIcons (เพื่อเช็ก Share Alert) ===
     function updateStatusIcons(v){ 
       const alertMessages = { eyeAlert:{m:'ตรวจพบการหลับตา',s:'กรุณาลืมตาขณะขับขี่ หากไม่ไหวให้จอดพัก'}, handsAlert:{m:'ปล่อยมือทั้งสองข้าง',s:'อันตราย! กรุณาควบคุมรถ'}, wheelAlert:{m:'ละมือจากพวงมาลัย',s:'กรุณาจับพวงมาลัยให้มั่นคง'}, phoneAlert:{m:'ใช้โทรศัพท์',s:'โปรดวางโทรศัพท์และตั้งใจขับรถ'}, yawnAlert:{m:'ตรวจพบการหาว',s:'ความง่วงเป็นสาเหตุของอุบัติเหตุ จอดพักสักครู่'}, pitchDown:{m:'ก้มหน้า',s:'โปรดมองตรงไปข้างหน้า'}, pitchUp:{m:'เงยหน้า',s:'โปรดมองถนนเพื่อความปลอดภัย'}, faceLost:{m:'ไม่พบใบหน้า',s:'กรุณาปรับตำแหน่งกล้องให้อยู่ในมุมที่เหมาะสม'}, yawLeft:{m:'หันซ้าย',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, yawRight:{m:'หันขวา',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, takeBreak:{m:'!!! พักผ่อนด่วน !!!',s:'คะแนนความพร้อมของคุณหมดแล้ว จอดพักทันที'} }; 
       const priority=['takeBreak','eyeAlert','handsAlert','wheelAlert','phoneAlert','pitchDown','pitchUp','yawnAlert','faceLost','yawLeft','yawRight']; 
@@ -391,6 +401,7 @@
       const nonSosAlerts = alerts.filter(a => a !== 'ส่ง SOS สำเร็จ!' && a !== 'ส่ง SOS ล้มเหลว!'); 
       
       // === (แก้ไข) ตรวจสอบ Alert ที่แสดงอยู่ ===
+      // ใช้ alertTextEl.textContent ที่เป็นค่าจริงใน DOM
       const isShareAlertActive = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(alertTextEl.textContent);
       
       if (nonSosAlerts.length > 0) { 
@@ -420,6 +431,7 @@
           alertTimeoutId = null; 
         } 
         alertBox.classList.remove('show'); 
+        alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความเมื่อซ่อน
       } 
       // ===========================================
 
@@ -497,6 +509,7 @@
         stopAllSoundsNow(); 
         if (alertBox.classList.contains('show')) {
             alertBox.classList.remove('show');
+            alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความ
         }
         
         const result = await sendSOSLogic(false);
@@ -526,6 +539,7 @@
       btnCalib.textContent = 'Calibrating...';
       if (alertTimeoutId) clearTimeout(alertTimeoutId);
       alertBox.classList.remove('show');
+      alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความ
 
       try{
         if(!video.srcObject)await startCam();
@@ -600,7 +614,7 @@
 
         // --- (เพิ่ม) สั่ง Stop Sharing ถ้ากด Stop ---
         if (isSharing) {
-          stopSharing(); 
+          stopSharing(); // <--- เรียกฟังก์ชัน stopSharing() ที่อยู่ข้างล่าง
         }
         // ----------------------------------------
       }
@@ -630,173 +644,176 @@
     // ###############################################
     // ### (เพิ่ม) ส่วนของ REAL-TIME MONITOR (WebRTC) ###
     // ###############################################
-    { // ใช้ { } เพื่อกันตัวแปรชนกัน
-      const WSS_URL = 'wss://project-1-6xta.onrender.com'; // <-- URL Server ของคุณ
-      
-      const iceServers = [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19032' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-      ];
+    
+    // ย้ายโค้ด WebRTC ทั้งหมดเข้ามาใน <script type="module">
+    // เพื่อให้สามารถเรียกใช้ `showAlert`, `isRunning`, `video` ได้
+    
+    const WSS_URL = 'wss://project-1-6xta.onrender.com'; // <-- URL Server ของคุณ
+    
+    const iceServers = [
+      { urls: 'stun:stun.l.google.com:19032' },
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+    ];
 
-      let pc; // PeerConnection
-      let ws; // WebSocket
-      let isSharing = false; // <-- ใช้ isSharing จาก scope นี้
+    let pc; // PeerConnection
+    let ws; // WebSocket
+    // (ลบ let isSharing = false; เพราะเราประกาศไว้ข้างบนแล้ว)
 
-      function createPeerConnection() {
-        pc = new RTCPeerConnection({ iceServers: iceServers });
+    function createPeerConnection() {
+      pc = new RTCPeerConnection({ iceServers: iceServers });
 
-        pc.onicecandidate = (event) => {
-          if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'candidate', payload: event.candidate }));
-          }
-        };
-        
-        pc.onconnectionstatechange = (event) => {
-            if (pc.connectionState === 'connected') {
-                console.log('Peer connected!');
-            }
-            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-                console.log('Peer disconnected.');
-                stopSharing();
-            }
-        };
-      }
-      
-      function connectWebSocket() {
-        console.log('Attempting to connect to WebSocket...');
-        return new Promise((resolve, reject) => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-              console.log('Already connected.');
-              resolve();
-              return;
-          }
-
-          ws = new WebSocket(WSS_URL);
-          
-          ws.onopen = () => {
-            console.log('Connected to Signaling Server as Driver');
-            resolve();
-          };
-          
-          ws.onmessage = async (message) => {
-            const data = JSON.parse(message.data);
-            switch (data.type) {
-              case 'answer':
-                if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-                break;
-              case 'candidate':
-                if (pc && data.payload) await pc.addIceCandidate(new RTCIceCandidate(data.payload));
-                break;
-              case 'info':
-                console.log('Server Info:', data.message);
-                break;
-            }
-          };
-          
-          ws.onclose = () => {
-            console.log('Disconnected from server.');
-            if (isSharing) stopSharing();
-            ws = null;
-          };
-
-          ws.onerror = (err) => {
-            console.error('WebSocket Error:', err);
-            stopSharing();
-            reject(err);
-          };
-        });
-      }
-
-      async function startSharing() {
-        console.log('Starting stream share...');
-        btnShare.disabled = true;
-        btnShare.textContent = 'Connecting...'; 
-        
-        // (แก้ไข) ใช้ showAlert()
-        showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server (อาจใช้เวลา 1 นาที)', 'warning', 0); // 0 = ค้างไว้
-
-        try {
-          if (!ws || ws.readyState !== WebSocket.OPEN) {
-            console.log('No connection, attempting to connect...');
-            await connectWebSocket();
-            // (แก้ไข) ใช้ showAlert()
-            showAlert('เชื่อมต่อสำเร็จ!', 'Server พร้อมแล้ว, กำลังเริ่มสตรีม', 'success', 2000); 
-          }
-          
-          if (!pc) {
-            createPeerConnection();
-          }
-          
-          // (แก้ไข) ใช้ตัวแปร 'video' ที่มีอยู่แล้ว
-          const stream = video.srcObject;
-          if (!stream) {
-              // (แก้ไข) ใช้ showAlert()
-              showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง (กรุณากด Start ก่อน)', 'error', 4000);
-              throw new Error('No video stream');
-          }
-          
-          stream.getTracks().forEach(track => {
-            if (!pc.getSenders().find(s => s.track === track)) {
-              pc.addTrack(track, stream);
-            }
-          });
-          
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          
-          ws.send(JSON.stringify({ type: 'offer', payload: offer }));
-          
-          isSharing = true;
-          btnShare.textContent = 'Stop Share';
-          btnShare.disabled = false;
-
-        } catch (error) {
-          console.error('Failed to start sharing:', error);
-          // (แก้ไข) ใช้ showAlert()
-          showAlert('เชื่อมต่อล้มเหลว', 'Server ไม่ตอบสนอง (โปรดรอ 1 นาทีแล้วลองใหม่)', 'error', 5000);
-          btnShare.textContent = 'Share'; 
-          btnShare.disabled = false; 
-          if (ws) ws.close();
-          ws = null;
+      pc.onicecandidate = (event) => {
+        if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'candidate', payload: event.candidate }));
         }
-      }
+      };
       
-      // (แก้ไข) ฟังก์ชัน stopSharing อยู่ใน scope นี้แล้ว
-      function stopSharing() {
-        if (pc) {
-          pc.close();
-          pc = null;
-        }
+      pc.onconnectionstatechange = (event) => {
+          if (pc.connectionState === 'connected') {
+              console.log('Peer connected!');
+              // (เพิ่ม) แจ้งเตือนเมื่อเชื่อมต่อสำเร็จ
+              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมวิดีโอของคุณกำลังถูกแชร์', 'success', 3000);
+          }
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+              console.log('Peer disconnected.');
+              stopSharing(); // หยุดเมื่อหลุด
+          }
+      };
+    }
+    
+    function connectWebSocket() {
+      console.log('Attempting to connect to WebSocket...');
+      return new Promise((resolve, reject) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close();
+            console.log('Already connected.');
+            resolve();
+            return;
         }
-        ws = null;
-        isSharing = false;
-        btnShare.textContent = 'Share';
-        btnShare.disabled = false;
-        console.log('Sharing stopped.');
+
+        ws = new WebSocket(WSS_URL);
         
-        // (แก้ไข) เพิ่ม Alert ตอนหยุด
+        ws.onopen = () => {
+          console.log('Connected to Signaling Server as Driver');
+          resolve();
+        };
+        
+        ws.onmessage = async (message) => {
+          const data = JSON.parse(message.data);
+          switch (data.type) {
+            case 'answer':
+              if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+              break;
+            case 'candidate':
+              if (pc && data.payload) await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+              break;
+            case 'info':
+              console.log('Server Info:', data.message);
+              break;
+          }
+        };
+        
+        ws.onclose = () => {
+          console.log('Disconnected from server.');
+          if (isSharing) stopSharing();
+          ws = null;
+        };
+
+        ws.onerror = (err) => {
+          console.error('WebSocket Error:', err);
+          stopSharing();
+          reject(err);
+        };
+      });
+    }
+
+    async function startSharing() {
+      console.log('Starting stream share...');
+      btnShare.disabled = true;
+      btnShare.textContent = 'Connecting...'; 
+      
+      showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server (อาจใช้เวลา 1 นาที)', 'warning', 0); // 0 = ค้างไว้
+
+      try {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          console.log('No connection, attempting to connect...');
+          await connectWebSocket();
+          // ไม่ต้อง showAlert สำเร็จตรงนี้ รอ onconnectionstatechange
+        }
+        
+        if (!pc) {
+          createPeerConnection();
+        }
+        
+        const stream = video.srcObject;
+        if (!stream) {
+            showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง (กรุณากด Start ก่อน)', 'error', 4000);
+            throw new Error('No video stream');
+        }
+        
+        stream.getTracks().forEach(track => {
+          if (!pc.getSenders().find(s => s.track === track)) {
+            pc.addTrack(track, stream);
+          }
+        });
+        
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        ws.send(JSON.stringify({ type: 'offer', payload: offer }));
+        
+        isSharing = true;
+        btnShare.textContent = 'Stop Share';
+        btnShare.disabled = false;
+
+      } catch (error) {
+        console.error('Failed to start sharing:', error);
+        showAlert('เชื่อมต่อล้มเหลว', 'Server ไม่ตอบสนอง (โปรดรอ 1 นาทีแล้วลองใหม่)', 'error', 5000);
+        btnShare.textContent = 'Share'; 
+        btnShare.disabled = false; 
+        if (ws) ws.close();
+        ws = null;
+      }
+    }
+    
+    // (เพิ่ม) สร้างฟังก์ชัน stopSharing ใน scope นี้
+    function stopSharing() {
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      ws = null;
+      
+      // เช็กว่ากำลังแชร์อยู่จริง ๆ ถึงค่อยแจ้งเตือน
+      if (isSharing) {
+        isSharing = false;
         showAlert('หยุดแชร์', 'หยุดการแชร์สตรีมวิดีโอแล้ว', 'error', 2000); 
       }
+      
+      btnShare.textContent = 'Share';
+      // ถ้า isRunning ยังเป็น true ก็เปิดปุ่ม
+      if (isRunning) {
+        btnShare.disabled = false;
+      }
+    }
 
-      btnShare.addEventListener('click', () => {
-        if (btnShare.disabled) return; 
+    btnShare.addEventListener('click', () => {
+      if (btnShare.disabled) return; 
 
-        if (!isSharing) {
-          // (แก้ไข) ตรวจสอบ isRunning จาก scope หลัก
-          if (!isRunning) {
-            showAlert('ระบบยังไม่เริ่ม', 'กรุณากด Start ก่อนแชร์', 'error', 3000);
-            return;
-          }
-          startSharing();
-        } else {
-          stopSharing();
+      if (!isSharing) {
+        if (!isRunning) { // เช็ก isRunning จาก scope หลัก
+          showAlert('ระบบยังไม่เริ่ม', 'กรุณากด Start ก่อนแชร์', 'error', 3000);
+          return;
         }
-      });
-    } // จบ scope ของ WebRTC
+        startSharing();
+      } else {
+        stopSharing();
+      }
+    });
     // ###############################################
     // ### จบส่วนของ REAL-TIME MONITOR (WebRTC) ###
     // ###############################################
