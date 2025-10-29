@@ -275,46 +275,55 @@
     const rad2deg=(r)=>r*57.2957795;
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-    // === **** (ฟังก์ชัน showAlert ที่แก้ไข Bug แล้ว) **** ===
+    // === **** (ฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3) **** ===
     function showAlert(title, subtext, type, duration = 3000) {
+      // เคลียร์ Timeout เก่าทันที (ป้องกันการซ้อน)
       if (alertTimeoutId) { clearTimeout(alertTimeoutId); alertTimeoutId = null; }
+      
+      // *** NEW: ล้างข้อความเก่า *ก่อน* ตั้งค่าใหม่เสมอ ***
+      // เพื่อให้แน่ใจว่าค่าเก่าไม่ค้าง ถ้ามีการเรียก showAlert ซ้อนกันเร็วๆ
+      // (ย้ายการล้างไปทำตอนซ่อนแทน เพื่อให้ isCurrentAlert เช็กค่าปัจจุบันได้)
+      // alertTextEl.textContent = ''; 
+      // alertSubTextEl.textContent = '';
+      
+      // ตั้งค่าข้อความใหม่และแสดง Popup
       alertTextEl.textContent = title;
       alertSubTextEl.textContent = subtext;
       alertCard.className = `card ${type}`;
       alertBox.classList.add('show');
       
+      // อัปเดตสถานะ SOS (เหมือนเดิม)
       isSosAlertActive = (title === 'ส่ง SOS สำเร็จ!' || title === 'ส่ง SOS ล้มเหลว!');
-      
-      // ตรวจสอบ isShareAlert ภายนอก setTimeout
+      // เช็กสถานะ Share (เหมือนเดิม)
       const isShareAlert = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(title);
 
+      // ตั้งเวลาซ่อน ถ้า duration > 0
       if (duration > 0) {
-        const expectedTitle = title; // ใช้ title ที่เข้ามาตอนแรกในการตรวจสอบ
+        const expectedTitle = title; // เก็บ title ที่คาดหวังสำหรับ Timeout นี้
         alertTimeoutId = setTimeout(() => {
-          
+          // *** สำคัญ: เช็กว่าข้อความที่แสดงอยู่ *ยังคงเป็น* ข้อความเดิมหรือไม่ ***
+          //    (ป้องกันกรณีมี Alert ใหม่มาแทรกก่อน Timeout ทำงาน)
           if (alertTextEl.textContent === expectedTitle) { 
             alertBox.classList.remove('show'); 
+            alertTextEl.textContent = ''; // *** ล้างข้อความเมื่อซ่อนตามเวลา ***
+            alertSubTextEl.textContent = ''; // ล้าง subtext ด้วย
             
-            // <--- นี่คือบรรทัดที่แก้ไข (1)
-            // สั่งล้างข้อความออกไปด้วย เมื่อ Popup หาย
-            alertTextEl.textContent = ''; 
-            
-            // <--- นี่คือบรรทัดที่แก้ไข (2)
-            // ถ้า Alert ที่เพิ่งหายไปเป็น SOS หรือ Share ให้บังคับ loop() ทำงานทันที
-            // เพื่อให้ Alert พฤติกรรม (ถ้ามี) แสดงขึ้นมาได้เลย
+            // ถ้า Alert ที่เพิ่งหายไปเป็น SOS หรือ Share ให้บังคับ loop ทำงาน
             if ((isSosAlertActive || isShareAlert) && isRunning) {
-                isSosAlertActive = false; // รีเซ็ตธง SOS
-                loop(); // บังคับให้ loop ทำงานใหม่
+                isSosAlertActive = false; // รีเซ็ตธง SOS ถ้าจำเป็น
+                loop(); // บังคับ loop เพื่อเช็ก Alert พฤติกรรมทันที
             }
           }
-          alertTimeoutId = null;
+          // ไม่ว่าเงื่อนไขข้างบนจะเป็นจริงหรือไม่ ให้เคลียร์ ID Timeout เสมอ
+          alertTimeoutId = null; 
         }, duration);
       } else {
-        // สำหรับ Alert ค้าง (duration = 0)
+        // สำหรับ Alert ค้าง (duration = 0) ไม่ต้องตั้งเวลาซ่อน
         alertTimeoutId = null; 
       }
     }
-    // === **** (จบฟังก์ชัน showAlert ที่แก้ไข Bug แล้ว) **** ===
+    // === **** (จบฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3) **** ===
+
 
     function initializeEmailJS() { /* ... (เหมือนเดิม) ... */ try { emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" }); console.log("EmailJS Initialized."); } catch (e) { console.error("Failed to initialize EmailJS:", e); showAlert("SOS Error", "ตั้งค่า EmailJS ล้มเหลว", "error", 5000); } }
 
@@ -358,7 +367,7 @@
     function watchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher); const o = { enableHighAccuracy: true, maximumAge: 0 }; geolocationWatcher = navigator.geolocation.watchPosition( (p) => { const s = p.coords.speed; speedKPH = (s || 0) * 3.6; currentCoords = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy }; }, (e) => { console.warn('GPS Error:', e.message); currentCoords = null; }, o); }
     function stopWatchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH = 0; currentCoords = null; }
 
-    // === (แก้ไข) updateStatusIcons (เพื่อเช็ก Share Alert) ===
+    // === **** (ฟังก์ชัน updateStatusIcons ที่แก้ไข Bug แล้ว) **** ===
     function updateStatusIcons(v){ 
       const alertMessages = { eyeAlert:{m:'ตรวจพบการหลับตา',s:'กรุณาลืมตาขณะขับขี่ หากไม่ไหวให้จอดพัก'}, handsAlert:{m:'ปล่อยมือทั้งสองข้าง',s:'อันตราย! กรุณาควบคุมรถ'}, wheelAlert:{m:'ละมือจากพวงมาลัย',s:'กรุณาจับพวงมาลัยให้มั่นคง'}, phoneAlert:{m:'ใช้โทรศัพท์',s:'โปรดวางโทรศัพท์และตั้งใจขับรถ'}, yawnAlert:{m:'ตรวจพบการหาว',s:'ความง่วงเป็นสาเหตุของอุบัติเหตุ จอดพักสักครู่'}, pitchDown:{m:'ก้มหน้า',s:'โปรดมองตรงไปข้างหน้า'}, pitchUp:{m:'เงยหน้า',s:'โปรดมองถนนเพื่อความปลอดภัย'}, faceLost:{m:'ไม่พบใบหน้า',s:'กรุณาปรับตำแหน่งกล้องให้อยู่ในมุมที่เหมาะสม'}, yawLeft:{m:'หันซ้าย',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, yawRight:{m:'หันขวา',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, takeBreak:{m:'!!! พักผ่อนด่วน !!!',s:'คะแนนความพร้อมของคุณหมดแล้ว จอดพักทันที'} }; 
       const priority=['takeBreak','eyeAlert','handsAlert','wheelAlert','phoneAlert','pitchDown','pitchUp','yawnAlert','faceLost','yawLeft','yawRight']; 
@@ -400,11 +409,14 @@
       
       const nonSosAlerts = alerts.filter(a => a !== 'ส่ง SOS สำเร็จ!' && a !== 'ส่ง SOS ล้มเหลว!'); 
       
-      // === (แก้ไข) ตรวจสอบ Alert ที่แสดงอยู่ ===
-      // ใช้ alertTextEl.textContent ที่เป็นค่าจริงใน DOM
-      const isShareAlertActive = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(alertTextEl.textContent);
+      // --- ส่วนแสดง/ซ่อน Alert ---
+      // เช็กว่า Alert ที่แสดงอยู่ตอนนี้ (ถ้ามี) เป็นของ SOS หรือ Share หรือไม่
+      const isCurrentAlertSos = (alertTextEl.textContent === 'ส่ง SOS สำเร็จ!' || alertTextEl.textContent === 'ส่ง SOS ล้มเหลว!');
+      const isCurrentAlertShare = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(alertTextEl.textContent);
       
+      // ถ้ามี Alert พฤติกรรมเสี่ยงเกิดขึ้น
       if (nonSosAlerts.length > 0) { 
+        // หา Alert ลำดับความสำคัญสูงสุด (เหมือนเดิม)
         for (const k of priority) { 
           if (alertMessages[k] && nonSosAlerts.includes(alertMessages[k].m)) { 
             sub = alertMessages[k].s; 
@@ -419,21 +431,33 @@
         let currentSubText = sub; 
         if (v.takeBreakAlert && autoSosSent && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) { currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)"; } 
         
-        // (แก้ไข) จะไม่แสดง Alert พฤติกรรม ถ้ากำลังแสดง Alert ของ SOS หรือ Share อยู่
-        if (!isSosAlertActive && !isShareAlertActive) {
-            showAlert(currentTitle, currentSubText, lvl, 0); 
-        } 
+        // *** เงื่อนไขการแสดง Alert พฤติกรรม: ***
+        //   1. Popup ต้องไม่แสดงอยู่ หรือ
+        //   2. Popup ที่แสดงอยู่ *ไม่ใช่* ของ SOS หรือ Share และ ข้อความ *ไม่เหมือน* กับที่จะแสดงใหม่
+        if (!alertBox.classList.contains('show') || 
+            (!isCurrentAlertSos && !isCurrentAlertShare && alertTextEl.textContent !== currentTitle)) 
+        {
+            showAlert(currentTitle, currentSubText, lvl, 0); // แสดง Alert ค้าง (duration = 0)
+        }
 
-      // (แก้ไข) จะซ่อน Alert ก็ต่อเมื่อไม่มี Alert ความเสี่ยง และไม่ใช่ Alert ของ SOS/Share
-      } else if (alertBox.classList.contains('show') && !isSosAlertActive && !isShareAlertActive) { 
-        if (alertTimeoutId) { 
-          clearTimeout(alertTimeoutId); 
-          alertTimeoutId = null; 
-        } 
-        alertBox.classList.remove('show'); 
-        alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความเมื่อซ่อน
+      // ถ้า *ไม่มี* Alert พฤติกรรมเสี่ยงเกิดขึ้นเลย
+      } else { 
+          // *** เงื่อนไขการซ่อน Alert: ***
+          //    1. Popup ต้องแสดงอยู่ และ
+          //    2. Popup ที่แสดงอยู่ *ไม่ใช่* ของ SOS หรือ Share
+          if (alertBox.classList.contains('show') && !isCurrentAlertSos && !isCurrentAlertShare) { 
+              // เคลียร์ Timeout (ถ้ามี - กรณี Alert เก่าเป็นแบบมีเวลา)
+              if (alertTimeoutId) { 
+                  clearTimeout(alertTimeoutId); 
+                  alertTimeoutId = null; 
+              } 
+              alertBox.classList.remove('show'); 
+              alertTextEl.textContent = ''; // *** สำคัญ: ล้างข้อความเมื่อซ่อน ***
+              alertSubTextEl.textContent = ''; // ล้าง subtext ด้วย
+          } 
       } 
-      // ===========================================
+      // --- จบส่วนแสดง/ซ่อน Alert ---
+
 
       // Icon colors (เหมือนเดิม)
       const r='#dc2626',y='#f59e0b',g='#10b981',d=''; 
@@ -442,11 +466,11 @@
       handsStatusIcon.style.backgroundColor=(v.handsAlert||v.takeBreakAlert)?r:d; 
       wheelStatusIcon.style.backgroundColor=(v.wheelAlert||v.takeBreakAlert)?r:d; 
 
-      // Sound Logic (เหมือนเดิม)
+      // Sound Logic (ส่วนนี้สำคัญ)
       const soundP=[ 
         {f:v.eyeAlert,i:'EYES',e:sndEyes},
         {f:v.phoneAlert,i:'PHONE',e:sndPhone},
-        {f:v.handsAlert,i:'WHEEL',e:sndWheel},
+        {f:v.handsAlert,i:'WHEEL',e:sndWheel}, // ใช้เสียง Wheel สำหรับ Hands Alert
         {f:v.wheelAlert,i:'WHEEL',e:sndWheel},
         {f:v.pitchAlertText==='ก้มหน้า',i:'DOWN',e:sndDown},
         {f:v.pitchAlertText==='เงยหน้า',i:'UP',e:sndUp},
@@ -455,8 +479,10 @@
         {f:v.yawnAlert,i:'YAWN',e:sndYawn} 
       ]; 
 
+      // ถ้าคะแนนหมด (Take Break Alert)
       if (v.takeBreakAlert) { 
-        stopAllSoundsNow('SCORE'); 
+        stopAllSoundsNow('SCORE'); // หยุดเสียงอื่น ยกเว้น Score
+        // เล่นเสียง Score ค้าง (เหมือนเดิม)
         if (!hasPlayedScoreSound) { 
           sndScore.loop = true; sndScore.volume = 1.0; sndScore.play().catch(()=>{}); 
           hasPlayedScoreSound = true; 
@@ -464,22 +490,43 @@
           scoreSoundTimeout = setTimeout(() => { stopAlertSound('SCORE', sndScore); }, 30000); 
         } 
         currentAudioAlert = 'SCORE'; 
+      
+      // ถ้าคะแนนยังไม่หมด
       } else { 
-        let sPlay = null; 
-        for(const item of soundP) if(item.f) { sPlay=item; break; } 
-        if(sPlay) { 
-          playAlertSound(sPlay.i, sPlay.e); 
-        } else if(currentAudioAlert && currentAudioAlert !== 'SCORE') { 
-          const elToStop={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,
-                          'DOWN':sndDown,'UP':sndUp,'LEFT':sndLeft,'RIGHT':sndRight}[currentAudioAlert]; 
-          if(elToStop) stopAlertSound(currentAudioAlert, elToStop); 
-          currentAudioAlert = null; 
-        } 
+        let soundToPlay = null; 
+        // หาเสียงลำดับความสำคัญสูงสุดที่จะเล่น จากรายการ soundP
+        for(const item of soundP) {
+          if(item.f) { // ถ้า flag ของเสียงนี้เป็น true
+            soundToPlay = item; 
+            break; // เจอแล้ว หยุดหา
+          } 
+        }
+        
+        // ถ้ามีเสียงที่ต้องเล่น
+        if(soundToPlay) { 
+          // และเสียงนั้น *ไม่ใช่* เสียงที่กำลังเล่นอยู่
+          if (currentAudioAlert !== soundToPlay.i) {
+             playAlertSound(soundToPlay.i, soundToPlay.e); // เล่นเสียงใหม่
+          }
+        // ถ้า *ไม่มี* เสียงที่ต้องเล่นเลย (ทุกอย่างปกติ)
+        } else {
+            // และ *มี* เสียงกำลังเล่นอยู่ (ที่ไม่ใช่ SCORE)
+            if(currentAudioAlert && currentAudioAlert !== 'SCORE') { 
+                // หา element เสียงที่กำลังเล่นอยู่
+                const elToStop={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,
+                                'DOWN':sndDown,'UP':sndUp,'LEFT':sndLeft,'RIGHT':sndRight}[currentAudioAlert]; 
+                if(elToStop) {
+                    stopAlertSound(currentAudioAlert, elToStop); // สั่งหยุดเสียงนั้น
+                }
+                currentAudioAlert = null; // เคลียร์สถานะเสียงปัจจุบัน
+            } 
+        }
       } 
       
       scoreDisplay.textContent=Math.round(driverScore); 
       speedDisplay.textContent=Math.round(speedKPH); 
     }
+    // === **** (จบฟังก์ชัน updateStatusIcons ที่แก้ไข Bug แล้ว) **** ===
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
     function scheduleNext(fn){ if(rVFC)rVFC(()=>fn()); else requestAnimationFrame(fn); }
@@ -509,7 +556,8 @@
         stopAllSoundsNow(); 
         if (alertBox.classList.contains('show')) {
             alertBox.classList.remove('show');
-            alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความ
+            alertTextEl.textContent = ''; // ล้างข้อความ
+            alertSubTextEl.textContent = ''; 
         }
         
         const result = await sendSOSLogic(false);
@@ -539,7 +587,8 @@
       btnCalib.textContent = 'Calibrating...';
       if (alertTimeoutId) clearTimeout(alertTimeoutId);
       alertBox.classList.remove('show');
-      alertTextEl.textContent = ''; // <--- (เพิ่ม) ล้างข้อความ
+      alertTextEl.textContent = ''; // ล้างข้อความ
+      alertSubTextEl.textContent = ''; 
 
       try{
         if(!video.srcObject)await startCam();
@@ -651,10 +700,10 @@
     const WSS_URL = 'wss://project-1-6xta.onrender.com'; // <-- URL Server ของคุณ
     
     const iceServers = [
-      // === **** นี่คือจุดที่แก้ไข Port ที่ผมพิมพ์ผิด **** ===
-      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้จาก 19032 เป็น 19302
-      { urls: 'stun:stun.l.google.com:19302' },
-      // =================================================
+      // === **** แก้ไข Port ที่ผมพิมพ์ผิด **** ===
+      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้ไข Port
+      { urls: 'stun:stun1.l.google.com:19302' }, // <--- เพิ่ม Server สำรอง (Port ถูกต้อง)
+      // ======================================
       
       { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
       { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
@@ -676,8 +725,7 @@
       pc.onconnectionstatechange = (event) => {
           if (pc.connectionState === 'connected') {
               console.log('Peer connected!');
-              // (เพิ่ม) แจ้งเตือนเมื่อเชื่อมต่อสำเร็จ
-              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมวิดีโอของคุณกำลังถูกแชร์', 'success', 3000);
+              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมวิดีโอของคุณกำลังถูกแชร์', 'success', 1500);
           }
           if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
               console.log('Peer disconnected.');
@@ -709,7 +757,10 @@
               if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
               break;
             case 'candidate':
-              if (pc && data.payload) await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+              if (pc && data.payload) {
+                 try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
+                 catch (e) { console.error('Error adding received ICE candidate', e); }
+              }
               break;
             case 'info':
               console.log('Server Info:', data.message);
@@ -794,13 +845,19 @@
       // เช็กว่ากำลังแชร์อยู่จริง ๆ ถึงค่อยแจ้งเตือน
       if (isSharing) {
         isSharing = false;
-        showAlert('หยุดแชร์', 'หยุดการแชร์สตรีมวิดีโอแล้ว', 'error', 2000); 
+        // เช็กว่าปุ่ม Stop ไม่ได้ถูกกด (isRunning ยังเป็น true) ค่อยแสดง Alert "หยุดแชร์"
+        // ถ้า isRunning เป็น false (กด Stop ไปแล้ว) จะมี Alert "หยุดการตรวจจับ" แสดงอยู่แล้ว
+        if (isRunning) {
+           showAlert('หยุดแชร์', 'หยุดการแชร์สตรีมวิดีโอแล้ว', 'error', 2000); 
+        }
       }
       
       btnShare.textContent = 'Share';
       // ถ้า isRunning ยังเป็น true ก็เปิดปุ่ม
       if (isRunning) {
         btnShare.disabled = false;
+      } else {
+        btnShare.disabled = true; // ถ้า isRunning เป็น false ให้ปิดปุ่ม Share ด้วย
       }
     }
 
@@ -809,7 +866,7 @@
 
       if (!isSharing) {
         if (!isRunning) { // เช็ก isRunning จาก scope หลัก
-          showAlert('ระบบยังไม่เริ่ม', 'กรุณากด Start ก่อนแชร์', 'error', 3000);
+          showAlert('ระบบยังไม่เริ่ม', 'กรุณากด Start ก่อนแชร์', 'error', 1500);
           return;
         }
         startSharing();
