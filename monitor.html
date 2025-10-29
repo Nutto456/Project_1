@@ -17,12 +17,14 @@
 
   <script>
     // 1. ตั้งค่า Server (STUN ฟรี, TURN ฟรีสำหรับเทส)
-    // === URL ถูกอัปเดตแล้ว ===
-    const WSS_URL = 'wss://project-1-6xta.onrender.com'; 
+    const WSS_URL = 'wss://project-1-6xta.onrender.com'; // <-- URL Server ของคุณ
     
     const iceServers = [
+      // === **** นี่คือจุดที่แก้ไข Port ที่ผมพิมพ์ผิด **** ===
+      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้จาก 19032 เป็น 19302
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
+      // =================================================
+      
       { // TURN Server ฟรี (อาจช้า/ล่มได้)
         urls: 'turn:openrelay.metered.ca:80',
         username: 'openrelayproject',
@@ -59,7 +61,7 @@
           if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
               console.log('Peer disconnected. Re-setting video.');
               videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
-              pc.close();
+              if(pc) pc.close();
               pc = null;
           }
       };

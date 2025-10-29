@@ -651,8 +651,11 @@
     const WSS_URL = 'wss://project-1-6xta.onrender.com'; // <-- URL Server ของคุณ
     
     const iceServers = [
-      { urls: 'stun:stun.l.google.com:19032' },
+      // === **** นี่คือจุดที่แก้ไข Port ที่ผมพิมพ์ผิด **** ===
+      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้จาก 19032 เป็น 19302
       { urls: 'stun:stun.l.google.com:19302' },
+      // =================================================
+      
       { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
       { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
     ];
