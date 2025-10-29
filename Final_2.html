@@ -29,43 +29,36 @@
     #overlay { position: absolute; inset: 0; transform: scaleX(-1); }
     .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; }
     .status-badge { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; }
-
-    /* === UI MOD: indicator-group (Pill shape, more blur) === */
     .indicator-group {
       position: fixed; top: 1rem; right: 1rem; z-index: 50;
       display: flex; gap: 0.5rem; padding: 0.5rem;
       background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(10px); /* Increased blur */
-      border-radius: 999px; /* Pill shape */
-      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .indicator-group svg { color: white; }
-
-    /* === UI MOD: indicator-score-group (More padding, more blur, border) === */
     .indicator-score-group {
       position: fixed; top: 5rem; right: 1rem; z-index: 50;
       display: flex; flex-direction: column; gap: 0.5rem;
-      padding: 0.75rem 1rem; /* More horizontal padding */
+      padding: 0.75rem 1rem;
       background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(10px); /* Increased blur */
-      border-radius: 0.75rem; /* Slightly larger radius */
-      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
-      color: white; font-size: 0.875rem; min-width: 110px; /* Increased min-width */
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white; font-size: 0.875rem; min-width: 110px;
     }
     .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
-    .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; opacity: 0.8; } /* Faded label */
-    .indicator-score-item span:last-child { font-weight: 700; font-size: 1rem; color: #ffffff; } /* Bigger, brighter score */
-
+    .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; opacity: 0.8; }
+    .indicator-score-item span:last-child { font-weight: 700; font-size: 1rem; color: #ffffff; }
     .alert-popup { position: fixed; inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; z-index: 70; display: none; }
     .dark .alert-popup { background: none; }
     .alert-popup.show { display: block; }
-
-    /* === UI MOD: alert-popup .card (More padding, blur, and radius) === */
     .alert-popup .card {
-      padding: 1rem 1.5rem; /* Increased padding */
-      border-radius: 1rem; /* Increased radius */
+      padding: 1rem 1.5rem;
+      border-radius: 1rem;
       text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      backdrop-filter: blur(12px); /* Increased blur */
+      backdrop-filter: blur(12px);
       background-color: rgba(226, 232, 240, 0.85);
       border: 1px solid rgba(0,0,0,0.05);
     }
@@ -76,10 +69,8 @@
     .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2, .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p { color: white; opacity: 1; }
     .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText { opacity: 0.9; }
     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child { color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem; }
-
-    /* === UI MOD: alert-popup .card h2 (Bigger title) === */
     .alert-popup .card h2 {
-      font-size: 1.25rem; /* Increased font size */
+      font-size: 1.25rem;
       font-weight: 600; color: #1e293b; margin-bottom: 0.1rem;
     }
     .dark .alert-popup .card h2 { color: #f1f5f9; }
@@ -87,39 +78,31 @@
     .dark .alert-popup .card p { color: #cbd5e1; }
     .alert-popup .card p:last-child { font-size: 0.75rem; margin-top: 0.4rem; color: #64748b; }
     .dark .alert-popup .card p:last-child { color: #cbd5e1; opacity: 0.8; }
-
-    /* === UI MOD: #setupModal (More blur) === */
-    /* === FIX: Hide setupModal by default === */
     #setupModal {
       position: fixed; inset: 0; z-index: 110;
-      display: none; /* <-- CHANGED: Hide by default, JS will show it */
+      display: none; 
       align-items: center; justify-content: center; padding: 1rem;
-      background-color: rgba(0, 0, 0, 0.8); /* Darker bg */
-      backdrop-filter: blur(10px); /* Increased blur */
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
     }
-    /* === UI MOD: #setupModal .card (Bigger radius) === */
     #setupModal .card {
       width: 100%; max-width: 400px; padding: 1.5rem 2rem;
-      border-radius: 1rem; /* Increased radius */
+      border-radius: 1rem;
       background-color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.1);
     }
     .dark #setupModal .card { background-color: #1e293b; }
-
-    /* === UI MOD: #setupModal input (Bigger radius) === */
     #setupModal input[type="email"] {
       width: 100%; padding: 0.5rem 0.75rem;
-      border-radius: 0.5rem; /* Increased radius (rounded-lg) */
+      border-radius: 0.5rem;
       border: 1px solid #cbd5e1; background-color: white; color: #1e293b;
     }
     .dark #setupModal input[type="email"] { border-color: #475569; background-color: #334155; color: #f1f5f9; }
     #setupModal input[type="email"]:focus { outline: 2px solid #4f46e5; border-color: transparent; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-    /* === NEW: Loading Modal Styles === */
     #loadingModal {
-      position: fixed; inset: 0; z-index: 120; /* Higher z-index */
+      position: fixed; inset: 0; z-index: 120;
       display: flex; align-items: center; justify-content: center; padding: 1rem;
-      background-color: rgba(0, 0, 0, 0.85); /* Darker backdrop */
+      background-color: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(10px);
     }
     #loadingModal .card {
@@ -229,8 +212,6 @@
     const sndUp    = document.getElementById('sndUp');
     const sndRight = document.getElementById('sndRight');
     const sndLeft  = document.getElementById('sndLeft');
-
-    // === (เพิ่ม) Element ปุ่ม Share ===
     const btnShare = document.getElementById('btnShare');
 
     // === Config ===
@@ -265,8 +246,6 @@
     let autoSosSent = false;
     let alertTimeoutId = null;
     let isSosAlertActive = false;
-
-    // === (เพิ่ม) State สำหรับ Share ===
     let isSharing = false;
 
     // === Utils ===
@@ -275,61 +254,37 @@
     const rad2deg=(r)=>r*57.2957795;
     const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-    // === **** (ฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3) **** ===
+    // === (ฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3 - เหมือนเดิม) ===
     function showAlert(title, subtext, type, duration = 3000) {
-      // เคลียร์ Timeout เก่าทันที (ป้องกันการซ้อน)
       if (alertTimeoutId) { clearTimeout(alertTimeoutId); alertTimeoutId = null; }
-
-      // *** NEW: ล้างข้อความเก่า *ก่อน* ตั้งค่าใหม่เสมอ ***
-      // เพื่อให้แน่ใจว่าค่าเก่าไม่ค้าง ถ้ามีการเรียก showAlert ซ้อนกันเร็วๆ
-      // (ย้ายการล้างไปทำตอนซ่อนแทน เพื่อให้ isCurrentAlert เช็กค่าปัจจุบันได้)
-      // alertTextEl.textContent = '';
-      // alertSubTextEl.textContent = '';
-
-      // ตั้งค่าข้อความใหม่และแสดง Popup
       alertTextEl.textContent = title;
       alertSubTextEl.textContent = subtext;
       alertCard.className = `card ${type}`;
       alertBox.classList.add('show');
-
-      // อัปเดตสถานะ SOS (เหมือนเดิม)
       isSosAlertActive = (title === 'ส่ง SOS สำเร็จ!' || title === 'ส่ง SOS ล้มเหลว!');
-      // เช็กสถานะ Share (เหมือนเดิม)
       const isShareAlert = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(title);
-
-      // ตั้งเวลาซ่อน ถ้า duration > 0
       if (duration > 0) {
-        const expectedTitle = title; // เก็บ title ที่คาดหวังสำหรับ Timeout นี้
+        const expectedTitle = title;
         alertTimeoutId = setTimeout(() => {
-          // *** สำคัญ: เช็กว่าข้อความที่แสดงอยู่ *ยังคงเป็น* ข้อความเดิมหรือไม่ ***
-          //    (ป้องกันกรณีมี Alert ใหม่มาแทรกก่อน Timeout ทำงาน)
           if (alertTextEl.textContent === expectedTitle) {
             alertBox.classList.remove('show');
-            alertTextEl.textContent = ''; // *** ล้างข้อความเมื่อซ่อนตามเวลา ***
-            alertSubTextEl.textContent = ''; // ล้าง subtext ด้วย
-
-            // ถ้า Alert ที่เพิ่งหายไปเป็น SOS หรือ Share ให้บังคับ loop ทำงาน
+            alertTextEl.textContent = '';
+            alertSubTextEl.textContent = '';
             if ((isSosAlertActive || isShareAlert) && isRunning) {
-                isSosAlertActive = false; // รีเซ็ตธง SOS ถ้าจำเป็น
-                loop(); // บังคับ loop เพื่อเช็ก Alert พฤติกรรมทันที
+                isSosAlertActive = false;
+                loop();
             }
           }
-          // ไม่ว่าเงื่อนไขข้างบนจะเป็นจริงหรือไม่ ให้เคลียร์ ID Timeout เสมอ
           alertTimeoutId = null;
         }, duration);
       } else {
-        // สำหรับ Alert ค้าง (duration = 0) ไม่ต้องตั้งเวลาซ่อน
         alertTimeoutId = null;
       }
     }
-    // === **** (จบฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3) **** ===
 
-
-    function initializeEmailJS() { /* ... (เหมือนเดิม) ... */ try { emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" }); console.log("EmailJS Initialized."); } catch (e) { console.error("Failed to initialize EmailJS:", e); showAlert("SOS Error", "ตั้งค่า EmailJS ล้มเหลว", "error", 5000); } }
-
-    async function sendSOSLogic(isAuto = false) { /* ... (เหมือนเดิม) ... */ console.log(`sendSOSLogic called (isAuto: ${isAuto}). Current Coords:`, currentCoords, "SOS Email:", sosEmail); if (!sosEmail) { console.error("SOS Error: ไม่พบอีเมลผู้ติดต่อฉุกเฉิน!"); return { success: false, error: "ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ" }; } if (!currentCoords) { console.warn("SOS Warning: ยังไม่มีข้อมูล GPS ล่าสุด..."); return { success: false, error: "ยังไม่มีข้อมูล GPS" }; } const { lat, lon } = currentCoords; const mapLink = `https://www.google.com/maps?q=$${lat},${lon}`; const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ'; const templateParams = { to_email: sosEmail, map_link: mapLink, accuracy: accuracy }; console.log("Prepared templateParams:", templateParams); const SERVICE_ID = "service_d3q6ubr"; const TEMPLATE_ID = "template_d76czdh"; console.log(`Attempting emailjs.send with ServiceID: ${SERVICE_ID}, TemplateID: ${TEMPLATE_ID}`); try { const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams); console.log('SOS Email SUCCESS!', response.status, response.text); return { success: true }; } catch (error) { console.error('SOS Email FAILED...', error); return { success: false, error: error }; } }
-
-    // === Sound Functions ===
+    // === (ฟังก์ชัน EmailJS, SOS, Sound, MediaPipe Setup - ทั้งหมดเหมือนเดิม) ===
+    function initializeEmailJS() { try { emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" }); console.log("EmailJS Initialized."); } catch (e) { console.error("Failed to initialize EmailJS:", e); showAlert("SOS Error", "ตั้งค่า EmailJS ล้มเหลว", "error", 5000); } }
+    async function sendSOSLogic(isAuto = false) { console.log(`sendSOSLogic called (isAuto: ${isAuto}). Current Coords:`, currentCoords, "SOS Email:", sosEmail); if (!sosEmail) { console.error("SOS Error: ไม่พบอีเมลผู้ติดต่อฉุกเฉิน!"); return { success: false, error: "ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ" }; } if (!currentCoords) { console.warn("SOS Warning: ยังไม่มีข้อมูล GPS ล่าสุด..."); return { success: false, error: "ยังไม่มีข้อมูล GPS" }; } const { lat, lon } = currentCoords; const mapLink = `https://www.google.com/maps?q=$${lat},${lon}`; const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ'; const templateParams = { to_email: sosEmail, map_link: mapLink, accuracy: accuracy }; console.log("Prepared templateParams:", templateParams); const SERVICE_ID = "service_d3q6ubr"; const TEMPLATE_ID = "template_d76czdh"; console.log(`Attempting emailjs.send with ServiceID: ${SERVICE_ID}, TemplateID: ${TEMPLATE_ID}`); try { const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams); console.log('SOS Email SUCCESS!', response.status, response.text); return { success: true }; } catch (error) { console.error('SOS Email FAILED...', error); return { success: false, error: error }; } }
     function playAlertSound(id, el) { if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];} if(currentAudioAlert!==id)stopAllSoundsNow(id); el.loop=true; el.volume=1.0; el.play().catch(()=>{}); currentAudioAlert=id; }
     function stopAlertSound(id, el) { if(!el||el.paused||fadeOutIntervals[id])return; el.loop=false; fadeOutIntervals[id]=setInterval(()=>{ let nv=el.volume-0.1; if(nv<=0){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];el.pause();el.currentTime=0;el.volume=1.0;if(currentAudioAlert===id)currentAudioAlert=null;}else el.volume=nv; },80); }
     function stopAllSoundsNow(exceptId = null) {
@@ -349,9 +304,6 @@
         if (currentAudioAlert && currentAudioAlert !== exceptId) currentAudioAlert = null;
         if (scoreSoundTimeout) { clearTimeout(scoreSoundTimeout); scoreSoundTimeout = null; }
     }
-
-
-    // === MediaPipe Setup (เหมือนเดิม) ===
     const EYE_L=[33,160,158,133,153,144], EYE_R=[263,387,385,362,380,373]; const MOUTH_TOP=13,MOUTH_BOTTOM=14,MOUTH_LEFT=61,MOUTH_RIGHT=291;
     const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y); const ear=(lm,i)=>(dist(lm[i[1]],lm[i[5]])+dist(lm[i[2]],lm[i[4]]))/(2*dist(lm[i[0]],lm[i[3]])); const marSimple=(lm)=>dist(lm[MOUTH_TOP],lm[MOUTH_BOTTOM])/(dist(lm[MOUTH_LEFT],lm[MOUTH_RIGHT])+1e-6);
     function eulerFromR(r){ const r00=r[0],r01=r[1],r02=r[2],r10=r[3],r11=r[4],r12=r[5],r20=r[6],r21=r[7],r22=r[8]; const sy=Math.hypot(r00,r10); let p,y,rl; if(sy>1e-6){p=Math.atan2(-r20,sy);y=Math.atan2(r10,r00);rl=Math.atan2(r21,r22);}else{p=Math.atan2(-r20,sy);y=Math.atan2(-r01,r11);rl=0;} return {pitch:rad2deg(p),yaw:rad2deg(y),roll:rad2deg(rl)}; }
@@ -361,13 +313,11 @@
     window.addEventListener('resize',()=>{if(video?.videoWidth)resizeCanvas();});
     function collectHands(hRes){ const out=[],lms=hRes?.landmarks||[],hd=hRes?.handednesses||[]; for(let i=0;i<lms.length;i++){const lm=lms[i],h=hd?.[i]?.[0]?.categoryName||null; out.push({lm,handedness:h});} return out; }
     async function initModels(){ if(modelsReady)return; const r=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"); faceLandmarker=await FaceLandmarker.createFromOptions(r,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"},numFaces:2,runningMode:"VIDEO",outputFaceBlendshapes:false,outputFacialTransformationMatrixes:true}); handLandmarker=await HandLandmarker.createFromOptions(r,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task"},numHands:2,runningMode:"VIDEO"}); cocoSsdModel=await cocoSsd.load(); console.log('Models loaded.'); modelsReady=true; phoneReady=true; }
-
-    // === (แก้ไข) ฟังก์ชัน startCam() ให้มี audio: true ===
     async function startCam(){
       try{
         const st=await navigator.mediaDevices.getUserMedia({
           video:{facingMode:"user",width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
-          audio: true // <--- ตรวจสอบว่ามีบรรทัดนี้แล้ว
+          audio: true 
         });
         video.srcObject=st;
         await new Promise(r=>{if(video.readyState>=1)r(); else video.onloadedmetadata=()=>r();});
@@ -380,19 +330,15 @@
         throw e;
       }
     }
-
-    // === GPS Speed Functions (เหมือนเดิม) ===
-    function watchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher); const o = { enableHighAccuracy: true, maximumAge: 0 }; geolocationWatcher = navigator.geolocation.watchPosition( (p) => { const s = p.coords.speed; speedKPH = (s || 0) * 3.6; currentCoords = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy }; }, (e) => { console.warn('GPS Error:', e.message); currentCoords = null; }, o); }
-    function stopWatchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH = 0; currentCoords = null; }
-
-    // === **** (ฟังก์ชัน updateStatusIcons ที่แก้ไข Logic เสียง) **** ===
+    function watchSpeed() { if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher); const o = { enableHighAccuracy: true, maximumAge: 0 }; geolocationWatcher = navigator.geolocation.watchPosition( (p) => { const s = p.coords.speed; speedKPH = (s || 0) * 3.6; currentCoords = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy }; }, (e) => { console.warn('GPS Error:', e.message); currentCoords = null; }, o); }
+    function stopWatchSpeed() { if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH = 0; currentCoords = null; }
+    
+    // === (ฟังก์ชัน updateStatusIcons - เหมือนเดิม) ===
     function updateStatusIcons(v){
       const alertMessages = { eyeAlert:{m:'ตรวจพบการหลับตา',s:'กรุณาลืมตาขณะขับขี่ หากไม่ไหวให้จอดพัก'}, handsAlert:{m:'ปล่อยมือทั้งสองข้าง',s:'อันตราย! กรุณาควบคุมรถ'}, wheelAlert:{m:'ละมือจากพวงมาลัย',s:'กรุณาจับพวงมาลัยให้มั่นคง'}, phoneAlert:{m:'ใช้โทรศัพท์',s:'โปรดวางโทรศัพท์และตั้งใจขับรถ'}, yawnAlert:{m:'ตรวจพบการหาว',s:'ความง่วงเป็นสาเหตุของอุบัติเหตุ จอดพักสักครู่'}, pitchDown:{m:'ก้มหน้า',s:'โปรดมองตรงไปข้างหน้า'}, pitchUp:{m:'เงยหน้า',s:'โปรดมองถนนเพื่อความปลอดภัย'}, faceLost:{m:'ไม่พบใบหน้า',s:'กรุณาปรับตำแหน่งกล้องให้อยู่ในมุมที่เหมาะสม'}, yawLeft:{m:'หันซ้าย',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, yawRight:{m:'หันขวา',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, takeBreak:{m:'!!! พักผ่อนด่วน !!!',s:'คะแนนความพร้อมของคุณหมดแล้ว จอดพักทันที'} };
       const priority=['takeBreak','eyeAlert','handsAlert','wheelAlert','phoneAlert','pitchDown','pitchUp','yawnAlert','faceLost','yawLeft','yawRight'];
       const alerts=[];
       let sub='', lvl='none';
-
-      // การตรวจจับ Alert (เหมือนเดิม)
       if(v.takeBreakAlert){alerts.push(alertMessages.takeBreak.m);lvl='error';}
       if(v.yawAlertText){const k=v.yawAlertText==='หันซ้าย'?'yawLeft':'yawRight';alerts.push(alertMessages[k].m);if(lvl==='none'||lvl==='success')lvl='warning';}
       if(v.pitchAlertText){const k=v.pitchAlertText==='ก้มหน้า'?'pitchDown':'pitchUp';alerts.push(alertMessages[k].m);if(lvl!=='error')lvl='error';}
@@ -402,10 +348,7 @@
       if(v.phoneAlert){alerts.push(alertMessages.phoneAlert.m);lvl='error';}
       if(v.faceLost){alerts.push(alertMessages.faceLost.m);lvl='error';}
       if(v.yawnAlert){alerts.push(alertMessages.yawnAlert.m);if(lvl==='none')lvl='warning';}
-
-      // Auto SOS Logic (เหมือนเดิม)
       if (v.takeBreakAlert && !autoSosSent) {
-        // ... (โค้ด Auto SOS เหมือนเดิม) ...
         console.log("Score reached 0. Setting autoSosSent flag and attempting Auto SOS...");
         autoSosSent = true;
         (async () => {
@@ -425,15 +368,11 @@
           }
         })();
       }
-
       const nonSosAlerts = alerts.filter(a => a !== 'ส่ง SOS สำเร็จ!' && a !== 'ส่ง SOS ล้มเหลว!');
-
-      // --- ส่วนแสดง/ซ่อน Alert (เหมือนเดิมจากครั้งที่แล้ว) ---
       const isCurrentAlertSos = (alertTextEl.textContent === 'ส่ง SOS สำเร็จ!' || alertTextEl.textContent === 'ส่ง SOS ล้มเหลว!');
       const isCurrentAlertShare = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(alertTextEl.textContent);
-
       if (nonSosAlerts.length > 0) {
-        for (const k of priority) { /* ... หา sub, lvl ... */ if (alertMessages[k] && nonSosAlerts.includes(alertMessages[k].m)) { sub = alertMessages[k].s; if (k === 'takeBreak' || k === 'eyeAlert' || k === 'handsAlert' || k === 'wheelAlert' || k === 'phoneAlert' || k === 'pitchDown' || k === 'pitchUp' || k === 'faceLost') { lvl = 'error'; } else if (k === 'yawLeft' || k === 'yawRight') { if (lvl !== 'error') lvl = 'warning'; } else if (k === 'yawnAlert') { if (lvl === 'none') lvl = 'warning'; } break; } }
+        for (const k of priority) { if (alertMessages[k] && nonSosAlerts.includes(alertMessages[k].m)) { sub = alertMessages[k].s; if (k === 'takeBreak' || k === 'eyeAlert' || k === 'handsAlert' || k === 'wheelAlert' || k === 'phoneAlert' || k === 'pitchDown' || k === 'pitchUp' || k === 'faceLost') { lvl = 'error'; } else if (k === 'yawLeft' || k === 'yawRight') { if (lvl !== 'error') lvl = 'warning'; } else if (k === 'yawnAlert') { if (lvl === 'none') lvl = 'warning'; } break; } }
         let currentTitle = nonSosAlerts.join(' / ');
         let currentSubText = sub;
         if (v.takeBreakAlert && autoSosSent && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) { currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)"; }
@@ -446,34 +385,18 @@
               alertSubTextEl.textContent = '';
           }
       }
-      // --- จบส่วนแสดง/ซ่อน Alert ---
-
-
-      // Icon colors (เหมือนเดิม)
       const r='#dc2626',y='#f59e0b',g='#10b981',d='';
       eyesStatusIcon.style.backgroundColor=(v.eyeAlert||(v.pitchAlertText&&lvl==='error')||v.takeBreakAlert)?r:(v.yawAlertText?y:(v.yawnAlert?g:d));
       phoneStatusIcon.style.backgroundColor=(v.phoneAlert||v.takeBreakAlert)?r:d;
       handsStatusIcon.style.backgroundColor=(v.handsAlert||v.takeBreakAlert)?r:d;
       wheelStatusIcon.style.backgroundColor=(v.wheelAlert||v.takeBreakAlert)?r:d;
-
-      // === **** แก้ไข Logic เสียง **** ===
-      const soundMap = { // Map ID เสียงกับ Element
-          'EYES': sndEyes, 'YAWN': sndYawn, 'PHONE': sndPhone, 'WHEEL': sndWheel,
-          'DOWN': sndDown, 'UP': sndUp, 'LEFT': sndLeft, 'RIGHT': sndRight, 'SCORE': sndScore
-      };
-
-      let soundToPlayId = null; // ID ของเสียงที่ควรเล่น (ลำดับความสำคัญสูงสุด)
-
-      // 1. ตรวจสอบ Take Break Alert ก่อน (สำคัญสุด)
-      if (v.takeBreakAlert) {
-          soundToPlayId = 'SCORE';
-      }
-      // 2. ถ้าไม่ Take Break ให้หาเสียง Alert พฤติกรรม
+      const soundMap = { 'EYES': sndEyes, 'YAWN': sndYawn, 'PHONE': sndPhone, 'WHEEL': sndWheel, 'DOWN': sndDown, 'UP': sndUp, 'LEFT': sndLeft, 'RIGHT': sndRight, 'SCORE': sndScore };
+      let soundToPlayId = null;
+      if (v.takeBreakAlert) { soundToPlayId = 'SCORE'; }
       else {
-          // รายการเสียงเรียงตามลำดับความสำคัญ (สูงไปต่ำ)
           const soundPriority = [
               { flag: v.eyeAlert, id: 'EYES' },
-              { flag: v.handsAlert, id: 'WHEEL' }, // ใช้เสียง Wheel
+              { flag: v.handsAlert, id: 'WHEEL' },
               { flag: v.wheelAlert, id: 'WHEEL' },
               { flag: v.phoneAlert, id: 'PHONE' },
               { flag: v.pitchAlertText === 'ก้มหน้า', id: 'DOWN' },
@@ -481,82 +404,51 @@
               { flag: v.yawnAlert, id: 'YAWN' },
               { flag: v.yawAlertText === 'หันซ้าย', id: 'LEFT' },
               { flag: v.yawAlertText === 'หันขวา', id: 'RIGHT' },
-              // faceLost ไม่มีเสียง
           ];
-
-          // หาเสียงแรกสุดในรายการที่ flag เป็น true
-          for (const item of soundPriority) {
-              if (item.flag) {
-                  soundToPlayId = item.id;
-                  break;
-              }
-          }
+          for (const item of soundPriority) { if (item.flag) { soundToPlayId = item.id; break; } }
       }
-
-      // 3. จัดการการเล่น/หยุดเสียงตาม soundToPlayId และ currentAudioAlert
-
-      // กรณี 1: เสียงที่ควรเล่นตอนนี้ (soundToPlayId) *ไม่เหมือน* เสียงที่กำลังเล่นอยู่ (currentAudioAlert)
       if (soundToPlayId !== currentAudioAlert) {
-          // หยุดเสียงเก่าก่อน (ถ้ามี และไม่ใช่ null)
           if (currentAudioAlert && soundMap[currentAudioAlert]) {
               stopAlertSound(currentAudioAlert, soundMap[currentAudioAlert]);
-              // จัดการ Timeout ของ SCORE ถ้าหยุดเล่น SCORE
               if (currentAudioAlert === 'SCORE') {
                   if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout);
                   scoreSoundTimeout = null;
-                  hasPlayedScoreSound = false; // รีเซ็ต flag เมื่อหยุด SCORE
+                  hasPlayedScoreSound = false;
               }
           }
-
-          // เล่นเสียงใหม่ (ถ้ามี และไม่ใช่ null)
           if (soundToPlayId && soundMap[soundToPlayId]) {
               playAlertSound(soundToPlayId, soundMap[soundToPlayId]);
-              // จัดการ Timeout ของ SCORE ถ้าเริ่มเล่น SCORE
               if (soundToPlayId === 'SCORE') {
-                 if (!hasPlayedScoreSound) { // เช็ก flag ก่อนตั้ง Timeout ใหม่
+                 if (!hasPlayedScoreSound) {
                      hasPlayedScoreSound = true;
-                     if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout); // เคลียร์เผื่อไว้
+                     if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout);
                      scoreSoundTimeout = setTimeout(() => {
                          stopAlertSound('SCORE', sndScore);
-                         hasPlayedScoreSound = false; // รีเซ็ต flag เมื่อหมดเวลา
-                         // ถ้า currentAudioAlert ยังเป็น SCORE อยู่ ให้เคลียร์ด้วย
+                         hasPlayedScoreSound = false;
                          if (currentAudioAlert === 'SCORE') currentAudioAlert = null;
                      }, 30000);
                  }
              }
-             // อัปเดต currentAudioAlert ทันทีที่สั่งเล่นเสียงใหม่
-             // (ย้ายไปอยู่ใน playAlertSound แล้ว)
-             // currentAudioAlert = soundToPlayId;
           } else {
-              // ถ้าไม่มีเสียงใหม่ (soundToPlayId เป็น null) ให้ตั้ง currentAudioAlert เป็น null ด้วย
               currentAudioAlert = null;
           }
       }
-      // กรณี 2: เสียงที่ควรเล่น *เหมือน* เสียงที่กำลังเล่นอยู่ -> ไม่ต้องทำอะไร ปล่อยให้มันเล่น loop ต่อไป
-
-      // === **** จบส่วนแก้ไข Logic เสียง **** ===
-
       scoreDisplay.textContent=Math.round(driverScore);
       speedDisplay.textContent=Math.round(speedKPH);
     }
-    // === **** (จบฟังก์ชัน updateStatusIcons ที่แก้ไข Logic เสียง) **** ===
-
 
     const rVFC = video.requestVideoFrameCallback?.bind(video);
     function scheduleNext(fn){ if(rVFC)rVFC(()=>fn()); else requestAnimationFrame(fn); }
     const getFPS=()=>30;
 
-    // === loop Function (เพิ่มการส่งข้อมูล statusUpdate) ===
+    // === (ฟังก์ชัน loop - เหมือนเดิม) ===
     async function loop(){ if(!isRunning)return; const now=performance.now(); const budget=1000/getFPS(); if(now-lastTick<budget)return scheduleNext(loop); lastTick=now; if(isBusy)return scheduleNext(loop); isBusy=true; if (isTakingBreakAlert) { updateStatusIcons({ eyeAlert:false, yawnAlert:false, handsAlert:false, phoneAlert:false, wheelAlert:false, faceLost:false, yawAlertText:'', pitchAlertText:'', takeBreakAlert:true }); if (!btnCalib.disabled) btnCalib.disabled = true; isBusy = false; scheduleNext(loop); return; } try{ const resF=faceLandmarker?.detectForVideo?.(video,now); const resH=handLandmarker?.detectForVideo?.(video,now); let dFace=null; if(resF?.faceLandmarks?.length>0)dFace=resF.faceLandmarks.length===1?resF.faceLandmarks[0]:resF.faceLandmarks.reduce((l,c)=>{const la=Math.abs(l[454].x-l[234].x)*Math.abs(l[152].y-l[10].y),ca=Math.abs(c[454].x-c[234].x)*Math.abs(c[152].y-c[10].y);return ca>la?c:l;}); const face=dFace; const hands=collectHands(resH); let eAl=false,yAl=false,hAl=false,pAl=false,ph=false,wAl=false,fLs=false,yTxt='',pTxt=''; let rdScr=false; ctx.clearRect(0,0,canvas.width,canvas.height); if(face){ const m4=resF?.facialTransformationMatrixes?.[face===resF.faceLandmarks[0]?0:1]; let pose=poseFromMatrixAuto(m4)||poseSimple(face); if(pose){ pitchEMA=ema(pitchEMA,pose.pitch); yawEMA=ema(yawEMA,pose.yaw); const cP=(pitchEMA-pitchOffset)*poseGain*pitchGain,cY=(yawEMA-yawOffset)*poseGain*yawGain; const fP=-cP,fY=cY; if(fY>THRESH.YAW_LEFT){if(yawLeftStart===null)yawLeftStart=now;yawRightStart=null;hasAlertedYawRight=false;if((now-yawLeftStart)/1000>THRESH.YAW_ALERT_SEC){yTxt='หันซ้าย';if(!hasAlertedYawLeft){rdScr=true;hasAlertedYawLeft=true;}}} else if(fY<THRESH.YAW_RIGHT){if(yawRightStart===null)yawRightStart=now;yawLeftStart=null;hasAlertedYawLeft=false;if((now-yawRightStart)/1000>THRESH.YAW_ALERT_SEC){yTxt='หันขวา';if(!hasAlertedYawRight){rdScr=true;hasAlertedYawRight=true;}}} else{yawLeftStart=null;hasAlertedYawLeft=false;yawRightStart=null;hasAlertedYawRight=false;} if(fP>THRESH.PITCH_DOWN){if(pitchDownStart===null)pitchDownStart=now;if((now-pitchDownStart)/1000>THRESH.PITCH_DOWN_SEC){pTxt='ก้มหน้า';if(!hasAlertedPitchDown){rdScr=true;hasAlertedPitchDown=true;}}} else if(fP<THRESH.PITCH_UP){pTxt='เงยหน้า';pitchDownStart=null;hasAlertedPitchDown=false; if(!hasAlertedPitchDown){rdScr=true;hasAlertedPitchDown=true;}} else{pitchDownStart=null;hasAlertedPitchDown=false;} } const EAR=ear(face,EYE_L)*0.5+ear(face,EYE_R)*0.5; const MAR=marSimple(face); if(EAR<THRESH.EYE_CLOSED){isEyeClosed=true;if(eyeStart==null)eyeStart=now;else if((now-eyeStart)/1000>THRESH.EYE_CLOSED_SEC){eAl=true;if(!hasAlertedEyes){rdScr=true;hasAlertedEyes=true;}}} else{ if(isEyeClosed && isTakingBreakAlert){} else { isEyeClosed=false; } eyeStart=null;hasAlertedEyes=false;} if(MAR>THRESH.YAWN){if(yawnStart==null)yawnStart=now;else if((now-yawnStart)/1000>THRESH.YAWN_SEC){yAl=true;if(!hasAlertedYawn){rdScr=true;hasAlertedYawn=true;}}} else{yawnStart=null;hasAlertedYawn=false;} faceLastSeen=now/1000; }else{const t=now/1000;if(!faceLastSeen)faceLastSeen=t;fLs=(t-faceLastSeen>THRESH.FACE_LOST_ALERT_SEC);if(fLs)rdScr=true;} const hOnSc=resH?.landmarks?.length||0; let bHUp=false; if(hOnSc>=2&&face){const nY=face[1].y;const lH=hands.find(h=>h.handedness==='Left'),rH=hands.find(h=>h.handedness==='Right');if(lH&&rH&&lH.lm[9].y<nY&&rH.lm[9].y<nY)bHUp=true;} if(bHUp){if(handsStart===null)handsStart=now;if((now-handsStart)/1000>THRESH.BOTH_HANDS_UP_SEC){hAl=true;if(!hasAlertedHands){rdScr=true;hasAlertedHands=true;}}}else{handsStart=null;hasAlertedHands=false;} let pBoxes=[]; if(phoneReady&&cocoSsdModel){const p=await cocoSsdModel.detect(video);for(const i of p)if(i.class==='cell phone'&&i.score>=THRESH.PHONE_SCORE){const[x,y,w,h]=i.bbox;pBoxes.push({xMin:x,yMin:y,xMax:x+w,yMax:y+h,s:i.score});}} let pDetFrame=false; if(pBoxes.length&&resH?.landmarks?.length){for(const b of pBoxes){const pc={x:(b.xMin+b.xMax)/2/video.videoWidth,y:(b.yMin+b.yMax)/2/video.videoHeight};for(const hLm of resH.landmarks){const wp=hLm[0];if(getDistance(pc,wp)<THRESH.PHONE_HAND_DISTANCE){pDetFrame=true;break;}}if(pDetFrame)break;}} if(pDetFrame)phoneLastSeenTime=now; if(phoneLastSeenTime!==null&&(now-phoneLastSeenTime)/1000<THRESH.PHONE_LOST_GRACE_SEC){ph=true;if(!hasAlertedPhone){rdScr=true;hasAlertedPhone=true;}}else{ph=false;hasAlertedPhone=false;phoneLastSeenTime=null;} pAl=ph; if(!hAl&&!pAl){if(hOnSc===0){if(wheelOffStart===null)wheelOffStart=now;if((now-wheelOffStart)/1000>THRESH.WHEEL_OFF_ALERT_SEC){wAl=true;if(!hasAlertedWheel){rdScr=true;hasAlertedWheel=true;}}}else{wheelOffStart=null;hasAlertedWheel=false;}}else{wheelOffStart=null;hasAlertedWheel=false;} if(driverScore<=0)isTakingBreakAlert=true; if(rdScr&&(now-scoreLastReduced>THRESH.SCORE_REDUCE_COOLDOWN)){driverScore=Math.max(0,driverScore-THRESH.SCORE_REDUCE_AMOUNT);scoreLastReduced=now;} const isSafe=!eAl&&!yAl&&!hAl&&!pAl&&!wAl&&!fLs&&!yTxt&&!pTxt; if(isSafe&&face&&(now-scoreLastRegen>THRESH.SCORE_REGEN_COOLDOWN)){if(driverScore<100)driverScore=Math.min(100,driverScore+THRESH.SCORE_REGEN_AMOUNT); if(driverScore>=100){isTakingBreakAlert=false; autoSosSent=false;} scoreLastRegen=now;} updateStatusIcons({eyeAlert:eAl,yawnAlert:yAl,handsAlert:hAl,phoneAlert:pAl,wheelAlert:wAl,faceLost:fLs,yawAlertText:yTxt,pitchAlertText:pTxt,takeBreakAlert:isTakingBreakAlert});
-
-        // === **** (เพิ่ม) ส่งข้อมูลสถานะไปยัง Monitor ถ้ากำลังแชร์อยู่ **** ===
         if (isSharing && ws && ws.readyState === WebSocket.OPEN) {
             const statusData = {
-                type: 'statusUpdate', // กำหนด type ของข้อความ
+                type: 'statusUpdate',
                 payload: {
                     score: Math.round(driverScore),
                     speed: Math.round(speedKPH),
-                    // ส่งสถานะ Alert ปัจจุบัน (ใช้ค่า boolean/text ที่คำนวณไว้แล้ว)
                     alerts: {
                         eyeAlert: eAl,
                         yawnAlert: yAl,
@@ -564,23 +456,19 @@
                         phoneAlert: pAl,
                         wheelAlert: wAl,
                         faceLost: fLs,
-                        yawText: yTxt, // ส่งค่า text ไปเลย ('หันซ้าย', 'หันขวา', '')
-                        pitchText: pTxt, // ส่งค่า text ไปเลย ('ก้มหน้า', 'เงยหน้า', '')
+                        yawText: yTxt,
+                        pitchText: pTxt,
                         takeBreak: isTakingBreakAlert
                     }
                 }
             };
-            // ส่งข้อมูลผ่าน WebSocket
             ws.send(JSON.stringify(statusData));
         }
-        // === **** จบส่วนที่เพิ่ม **** ===
-
       }catch(e){console.error('loop error',e);}
       finally{isBusy=false;scheduleNext(loop);}
-    } // จบฟังก์ชัน loop
+    }
 
-
-    // === Event Listeners (เหมือนเดิม) ===
+    // === (ฟังก์ชัน Event Listeners - เหมือนเดิม) ===
     btnSaveEmail.addEventListener('click', () => {
       const email = sosEmailInput.value;
       if (email && email.includes('@') && email.includes('.')) {
@@ -593,18 +481,15 @@
         showAlert('ข้อผิดพลาด', 'กรุณากรอกอีเมลให้ถูกต้อง (เช่น example@email.com)', 'error', 3000);
       }
     });
-
-    // btnSos Event Listener (เหมือนเดิม)
     btnSos.addEventListener('click', async () => {
         btnSos.disabled = true;
         btnSos.textContent = 'กำลังส่ง...';
         stopAllSoundsNow();
         if (alertBox.classList.contains('show')) {
             alertBox.classList.remove('show');
-            alertTextEl.textContent = ''; // ล้างข้อความ
+            alertTextEl.textContent = '';
             alertSubTextEl.textContent = '';
         }
-
         const result = await sendSOSLogic(false);
         let duration = 3000;
         if(result.success){
@@ -621,38 +506,31 @@
             showAlert('ส่ง SOS ล้มเหลว!', errorSubtext, 'error', duration);
             sndFailsos.play().catch(()=>{});
         }
-
         btnSos.disabled = false;
         btnSos.textContent = 'SOS';
     });
-
-    // --- (แก้ไข) Listener ปุ่ม Calibrate (เพิ่ม btnShare) ---
     btnCalib.addEventListener('click', async ()=>{
       btnCalib.disabled = true;
       btnCalib.textContent = 'Calibrating...';
       if (alertTimeoutId) clearTimeout(alertTimeoutId);
       alertBox.classList.remove('show');
-      alertTextEl.textContent = ''; // ล้างข้อความ
+      alertTextEl.textContent = '';
       alertSubTextEl.textContent = '';
-
       try{
         if(!video.srcObject)await startCam();
         if(!modelsReady)await initModels();
         const d=performance.now()+2000;
         let got=false,lastP=null;
         while(performance.now()<d){ const now=performance.now(); const resF=faceLandmarker?.detectForVideo?.(video,now); let cFace=resF?.faceLandmarks?.[0]; if(cFace){ const m4=resF?.facialTransformationMatrixes?.[0]; const pose=poseFromMatrixAuto(m4)||poseSimple(cFace); if(pose&&Number.isFinite(pose.pitch)&&Number.isFinite(pose.yaw)){ lastP=pose; got=true; break; } } await new Promise(r=>requestAnimationFrame(r)); }
-
         if(!got){
           showAlert('ไม่พบหน้า', 'ขยับให้อยู่กลางภาพ/เพิ่มแสง', 'error', 5000);
         } else {
           pitchOffset=lastP.pitch; yawOffset=lastP.yaw;
           calibrated=true;
-
           if (!isRunning) {
             btnToggle.disabled = false;
-            btnShare.disabled = false; // <-- (เพิ่ม) เปิดปุ่ม Share
+            btnShare.disabled = false;
           }
-
           canvas.style.outline='3px solid #10b981';
           setTimeout(()=>{canvas.style.outline='none';},520);
           showAlert('Calibrated!', 'พร้อมเริ่มใช้งาน', 'success', 2200);
@@ -666,23 +544,19 @@
         btnCalib.textContent = 'Calibrate';
       }
     });
-
-    // --- (แก้ไข) Listener ปุ่ม Start/Stop (เพิ่ม btnShare และ preload) ---
     btnToggle.addEventListener('click', async ()=>{
       if(!isRunning){
-
         const allSoundsToPreload = [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore, sndSos, sndFailsos, sndCali, sndDown, sndUp, sndRight, sndLeft];
         allSoundsToPreload.forEach(a => {
             a.muted = true; a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch((e) => { console.warn('Audio preload failed for a sound', e); a.muted = false; });
         });
-
         if (scoreSoundTimeout) { clearTimeout(scoreSoundTimeout); scoreSoundTimeout = null; }
         try{
           if(!video.srcObject)await startCam();
           if(!modelsReady)await initModels();
           isRunning=true;
           btnToggle.textContent='Stop';
-          btnShare.disabled = false; // <-- (เพิ่ม) เปิดปุ่ม Share
+          btnShare.disabled = false;
           driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
           scheduleNext(loop);
@@ -694,8 +568,8 @@
         isRunning=false;
         btnToggle.textContent='Start';
         btnToggle.disabled = true;
-        btnShare.disabled = true; // <-- (เพิ่ม) ปิดปุ่ม Share
-        btnShare.textContent = 'Share'; // <-- (เพิ่ม) รีเซ็ตข้อความ
+        btnShare.disabled = true;
+        btnShare.textContent = 'Share';
         calibrated = false;
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
@@ -705,18 +579,12 @@
         const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
         ctx.clearRect(0,0,canvas.width,canvas.height);
         showAlert('หยุดการตรวจจับ', '', 'error', 2200);
-
-        // --- (เพิ่ม) สั่ง Stop Sharing ถ้ากด Stop ---
         if (isSharing) {
-          stopSharing(); // <--- เรียกฟังก์ชัน stopSharing() ที่อยู่ข้างล่าง
+          stopSharing();
         }
-        // ----------------------------------------
       }
     });
-
-    // === (แก้ไข) Initialisation (เพิ่ม btnShare) ===
     const loadingModal = document.getElementById('loadingModal');
-
     (async ()=>{
       try {
         initializeEmailJS();
@@ -731,7 +599,7 @@
         btnCalib.disabled = true;
         btnToggle.disabled = true;
         btnSos.disabled = true;
-        btnShare.disabled = true; // <-- (เพิ่ม) ปิดปุ่ม Share
+        btnShare.disabled = true;
       }
     })();
 
@@ -739,25 +607,49 @@
     // ### ส่วนของ REAL-TIME MONITOR (WebRTC) ###
     // ###############################################
 
-    const WSS_URL = 'wss://project-1-6xbs.onrender.com'; // <-- URL Server ของคุณ
+    const WSS_URL = 'wss://project-1-6xbs.onrender.com';
 
+    // === **** (อัปเดต) เพิ่ม TURN Server สำรอง **** ===
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: "stun:global.stun.twilio.com:3478" },
+      // --- ลองตัวที่ 1 (ตัวเดิม) ---
       { 
         urls: "turn:numb.viagenie.ca:3478",
         username: "webrtc@live.com",
         credential: "muazkh" 
+      },
+      // --- เพิ่มตัวสำรอง (ตัวเก่า) ---
+      { 
+        urls: 'turn:openrelay.metered.ca:80', 
+        username: 'openrelayproject', 
+        credential: 'openrelayproject' 
+      },
+      { 
+        urls: 'turn:openrelay.metered.ca:443', 
+        username: 'openrelayproject', 
+        credential: 'openrelayproject' 
       }
     ];
+    // === **** (จบส่วนอัปเดต) **** ===
+
 
     let pc; // PeerConnection
     let ws; // WebSocket
-    // (ลบ let isSharing = false; เพราะเราประกาศไว้ข้างบนแล้ว)
+    let isNegotiating = false; 
 
+    // === **** (แก้ไข) ฟังก์ชัน createPeerConnection **** ===
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
+      isNegotiating = false; // รีเซ็ตธง
+
+      // === (เพิ่ม) "จองสล็อต" ล่วงหน้า ===
+      // นี่คือหัวใจสำคัญ: เราสร้าง "ช่องส่ง" วิดีโอและเสียง
+      // โดยบอกว่าเราจะ "ส่งเท่านั้น" (sendonly)
+      pc.addTransceiver('video', { direction: 'sendonly' });
+      pc.addTransceiver('audio', { direction: 'sendonly' });
+      // ===================================
 
       pc.onicecandidate = (event) => {
         if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
@@ -766,6 +658,7 @@
       };
 
       pc.onconnectionstatechange = (event) => {
+          // (โค้ดส่วนนี้เหมือนเดิม - ถูกต้องแล้ว)
           if (pc.connectionState === 'connected') {
               console.log('Peer connected!');
               showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมวิดีโอของคุณกำลังถูกแชร์', 'success', 1500);
@@ -775,8 +668,37 @@
               stopSharing(); // หยุดเมื่อหลุด
           }
       };
+
+      // (โค้ดส่วน onnegotiationneeded เหมือนเดิม - ถูกต้องแล้ว)
+      // มันจะถูกเรียกอัตโนมัติ *หลังจาก* ที่เรา addTransceiver
+      // เพื่อสร้าง Offer ที่มี "2 สล็อตว่าง" ส่งไป
+      pc.onnegotiationneeded = async () => {
+        if (isNegotiating) {
+          console.log("Skipping negotiation, already in progress...");
+          return;
+        }
+        try {
+          isNegotiating = true;
+          console.log("onnegotiationneeded fired, creating offer...");
+          
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'offer', payload: offer }));
+            console.log('Offer sent from onnegotiationneeded.');
+          } else {
+            console.error('WebSocket not open when onnegotiationneeded fired.');
+          }
+        } catch (err) {
+          console.error("Error during negotiation:", err);
+        } finally {
+          isNegotiating = false; 
+        }
+      };
     }
 
+    // (ฟังก์ชัน connectWebSocket เหมือนเดิม - ถูกต้องแล้ว)
     function connectWebSocket() {
       console.log('Attempting to connect to WebSocket...');
       return new Promise((resolve, reject) => {
@@ -785,17 +707,12 @@
             resolve();
             return;
         }
-
         ws = new WebSocket(WSS_URL);
-
         ws.onopen = () => {
           console.log('Connected to Signaling Server as Driver');
-
           ws.send(JSON.stringify({ type: 'identify', role: 'driver' }));
-
           resolve();
         };
-
         ws.onmessage = async (message) => {
           const data = JSON.parse(message.data);
           switch (data.type) {
@@ -813,13 +730,11 @@
               break;
           }
         };
-
         ws.onclose = () => {
           console.log('Disconnected from server.');
           if (isSharing) stopSharing();
           ws = null;
         };
-
         ws.onerror = (err) => {
           console.error('WebSocket Error:', err);
           stopSharing();
@@ -828,73 +743,93 @@
       });
     }
 
+    // === **** (แก้ไข) ฟังก์ชัน startSharing **** ===
     async function startSharing() {
       console.log('Starting stream share...');
       btnShare.disabled = true;
       btnShare.textContent = 'Connecting...';
 
-      showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server (อาจใช้เวลา 1 นาที)', 'warning', 0); // 0 = ค้างไว้
+      showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server...', 'warning', 0); 
 
       try {
+        // 1. ตรวจสอบ WebSocket (เหมือนเดิม)
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           console.log('No connection, attempting to connect...');
           await connectWebSocket();
+        }
 
-          // === **** เพิ่ม Delay 500ms **** ===
-          console.log('WebSocket connected, waiting 500ms before creating offer...');
-          await new Promise(resolve => setTimeout(resolve, 500)); // รอ 0.5 วินาที
-          // === **** จบส่วนที่เพิ่ม **** ===
-
-        } // จบ if (!ws...)
-
-
+        // 2. สร้าง PeerConnection (เหมือนเดิม)
+        // (ซึ่งตอนนี้จะสร้าง Transceiver และเรียก onnegotiationneeded อัตโนมัติ)
         if (!pc) {
           createPeerConnection();
         }
 
+        // 3. ตรวจสอบสตรีม (เหมือนเดิม)
         const stream = video.srcObject;
         if (!stream) {
             showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง (กรุณากด Start ก่อน)', 'error', 4000);
             throw new Error('No video stream');
         }
 
-        stream.getTracks().forEach(track => {
-          if (!pc.getSenders().find(s => s.track === track)) {
-            pc.addTrack(track, stream);
+        // 4. (แก้ไข) "เติมสล็อต" ด้วย `replaceTrack`
+        // เราจะไม่ใช้ addTrack() อีกต่อไป
+        console.log("Replacing tracks in transceivers...");
+        
+        const videoTrack = stream.getVideoTracks()[0];
+        const audioTrack = stream.getAudioTracks()[0];
+
+        if (videoTrack) {
+          // หา "ช่องส่ง" (sender) ของวิดีโอที่เราจองไว้
+          const videoSender = pc.getSenders().find(s => s.track?.kind === 'video' || s.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(videoTrack);
+            console.log('Video track replaced.');
           }
-        });
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        // เช็กสถานะ *ก่อน* ส่ง Offer อีกครั้ง
-        console.log('Current WebSocket state before sending offer:', ws ? ws.readyState : 'ws is null');
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'offer', payload: offer }));
-            console.log('Offer sent successfully.');
-        } else {
-            console.error('WebSocket is not open right before sending offer. State:', ws ? ws.readyState : 'null');
-            throw new Error(`WebSocket not OPEN. State: ${ws ? ws.readyState : 'null'}`);
         }
 
+        if (audioTrack) {
+           // หา "ช่องส่ง" (sender) ของเสียงที่เราจองไว้
+          const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio' || s.kind === 'audio');
+          if (audioSender) {
+            await audioSender.replaceTrack(audioTrack);
+            console.log('Audio track replaced.');
+          }
+        }
+        
+        // --- (ลบ) โค้ดสร้าง Offer/Send Offer เก่าถูกลบออกจากตรงนี้ ---
+        // (เพราะ onnegotiationneeded จัดการให้แล้ว)
 
+        console.log("Tracks replaced. Negotiation is handled.");
+
+        // 5. อัปเดต UI (เหมือนเดิม)
         isSharing = true;
         btnShare.textContent = 'Stop Share';
         btnShare.disabled = false;
+        // (Alert 'เชื่อมต่อสำเร็จ!' จะไปแสดงใน onconnectionstatechange เอง)
 
       } catch (error) {
         console.error('Failed to start sharing:', error);
-        // showAlert('เชื่อมต่อล้มเหลว', 'Server ไม่ตอบสนอง (โปรดรอ 1 นาทีแล้วลองใหม่)', 'error', 5000);
-        showAlert('ส่ง Offer ล้มเหลว', `การเชื่อมต่อถูกตัด (${error.message || 'Unknown reason'})`, 'error', 5000);
+        showAlert('เชื่อมต่อล้มเหลว', `เกิดข้อผิดพลาด (${error.message || 'Unknown'})`, 'error', 5000);
         btnShare.textContent = 'Share';
         btnShare.disabled = false;
-        // ไม่ต้อง close ws เพราะ stopSharing จะถูกเรียกจาก onclose/onerror
+        if(pc) stopSharing(); // ถ้าพลาดให้ปิดการเชื่อมต่อ
       }
     }
+    // === **** (จบฟังก์ชัน startSharing ที่แก้ไข) **** ===
 
-    // สร้างฟังก์ชัน stopSharing ใน scope นี้
+
+    // (ฟังก์ชัน stopSharing เหมือนเดิม - ถูกต้องแล้ว)
     function stopSharing() {
       if (pc) {
+        // (อาจจะเพิ่มการเคลียร์ track ก่อนปิด)
+        try {
+          pc.getSenders().forEach(sender => {
+            if (sender.track) {
+              sender.replaceTrack(null);
+            }
+          });
+        } catch(e) { console.warn('Error clearing tracks', e); }
+        
         pc.close();
         pc = null;
       }
@@ -903,29 +838,27 @@
       }
       ws = null;
 
-      // เช็กว่ากำลังแชร์อยู่จริง ๆ ถึงค่อยแจ้งเตือน
       if (isSharing) {
         isSharing = false;
-        // เช็กว่าปุ่ม Stop ไม่ได้ถูกกด (isRunning ยังเป็น true) ค่อยแสดง Alert "หยุดแชร์"
         if (isRunning) {
            showAlert('หยุดแชร์', 'หยุดการแชร์สตรีมวิดีโอแล้ว', 'error', 2000);
         }
       }
 
       btnShare.textContent = 'Share';
-      // ถ้า isRunning ยังเป็น true ก็เปิดปุ่ม
       if (isRunning) {
         btnShare.disabled = false;
       } else {
-        btnShare.disabled = true; // ถ้า isRunning เป็น false ให้ปิดปุ่ม Share ด้วย
+        btnShare.disabled = true;
       }
     }
 
+    // (Listener ของ btnShare เหมือนเดิม - ถูกต้องแล้ว)
     btnShare.addEventListener('click', () => {
       if (btnShare.disabled) return;
 
       if (!isSharing) {
-        if (!isRunning) { // เช็ก isRunning จาก scope หลัก
+        if (!isRunning) { 
           showAlert('ระบบยังไม่เริ่ม', 'กรุณากด Start ก่อนแชร์', 'error', 1500);
           return;
         }
