@@ -1,111 +1,186 @@
 <!DOCTYPE html>
-<html lang="th">
-<head>
+<html lang="th" class="dark"> <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Driver Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: sans-serif; display: grid; place-items: center; min-height: 100vh; background: #222; margin: 0; }
-    video { width: 100%; max-width: 800px; background: #000; border: 2px solid #555; }
-    h1 { color: white; }
+    /* เพิ่มสไตล์นิดหน่อย */
+    body { 
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; 
+      /* ทำให้ body เต็มจอ และใช้ flex จัดกลาง */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column; /* เรียงแนวตั้ง */
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    /* กำหนดขนาดวิดีโอ และ aspect ratio */
+    #videoContainer {
+      position: relative; /* สำหรับวางปุ่ม Mute */
+      width: 100%;
+      max-width: 800px; /* ขนาดใหญ่สุด */
+      aspect-ratio: 4 / 3; /* อัตราส่วนวิดีโอ (ปรับได้) */
+      overflow: hidden; /* ซ่อนส่วนเกิน */
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* ให้วิดีโอเต็มกรอบ */
+    }
+    /* สไตล์ปุ่ม Mute */
+    #muteButton {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 10;
+      background-color: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(5px);
+    }
+    #muteButton:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    #muteButton svg {
+      width: 1.25rem; /* 20px */
+      height: 1.25rem; /* 20px */
+    }
   </style>
 </head>
-<body>
+<body class="bg-slate-900 text-white"> <h1 class="text-2xl font-bold mb-4">Driver Monitor Feed</h1>
+  
+  <div id="videoContainer" class="rounded-lg shadow-lg bg-black border border-slate-700">
+    <video id="driverVideo" autoplay playsinline></video> 
+    
+    <button id="muteButton" class="p-2 rounded-full text-white opacity-80 hover:opacity-100 transition-opacity" title="Mute/Unmute">
+      <svg id="iconSpeaker" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 01-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+        <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+      </svg>
+      <svg id="iconMuted" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06z" />
+        <path d="M17.28 9.72a.75.75 0 00-1.06 1.06 4.5 4.5 0 010 6.364.75.75 0 001.06 1.06 6 6 0 000-8.486.75.75 0 00-1.06 0z" />
+        <path d="M19.94 7.05a.75.75 0 00-1.06 1.06 8.25 8.25 0 010 11.668.75.75 0 101.06 1.06c3.808-3.807 3.808-9.98 0-13.788zM22.01 4.979L4.978 22.011a.75.75 0 01-1.06-1.06L20.95 3.919a.75.75 0 011.06 1.06z" />
+      </svg>
+    </button>
+  </div>
 
-  <h1>Driver Monitor Feed</h1>
-  <video id="driverVideo" autoplay playsinline muted></video>
+  <div id="statusIndicator" class="mt-4 text-sm text-slate-400 flex items-center gap-2">
+    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span> <span id="statusText">Disconnected</span> </div>
 
   <script>
-    // 1. ตั้งค่า Server (STUN ฟรี, TURN ฟรีสำหรับเทส)
-    const WSS_URL = 'wss://project-1-6xbs.onrender.com'; // <-- URL Server ของคุณ
+    // URL Server (ถูกต้องแล้ว)
+    const WSS_URL = 'wss://project-1-6xbs.onrender.com'; 
     
+    // ICE Servers (ถูกต้องแล้ว)
     const iceServers = [
-      // === **** นี่คือจุดที่แก้ไข Port ที่ผมพิมพ์ผิด **** ===
-      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้จาก 19032 เป็น 19302
       { urls: 'stun:stun.l.google.com:19302' },
-      // =================================================
-      
-      { // TURN Server ฟรี (อาจช้า/ล่มได้)
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
     ];
 
+    // Element ต่างๆ
     const videoEl = document.getElementById('driverVideo');
+    const muteButton = document.getElementById('muteButton');
+    const iconSpeaker = document.getElementById('iconSpeaker');
+    const iconMuted = document.getElementById('iconMuted');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    
     let pc; // PeerConnection
     let ws; // WebSocket
+    let isMuted = false; // สถานะ Mute
 
+    // --- ฟังก์ชันอัปเดตสถานะ ---
+    function updateStatus(connected, message = '') {
+      if (connected) {
+        statusDot.classList.remove('bg-red-500', 'animate-pulse');
+        statusDot.classList.add('bg-green-500');
+        statusText.textContent = message || 'Connected';
+      } else {
+        statusDot.classList.remove('bg-green-500');
+        statusDot.classList.add('bg-red-500', 'animate-pulse');
+        statusText.textContent = message || 'Disconnected';
+        videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
+      }
+    }
+
+    // --- ฟังก์ชัน Mute/Unmute ---
+    function toggleMute() {
+      isMuted = !isMuted;
+      videoEl.muted = isMuted; // สั่ง Mute/Unmute ที่ตัว video
+      // สลับไอคอน
+      iconSpeaker.classList.toggle('hidden', isMuted);
+      iconMuted.classList.toggle('hidden', !isMuted);
+      muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
+    }
+    // ตั้งค่าเริ่มต้นให้ video ไม่ Mute และไอคอนถูกต้อง
+    videoEl.muted = isMuted; 
+    iconSpeaker.classList.toggle('hidden', isMuted);
+    iconMuted.classList.toggle('hidden', !isMuted);
+    muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
+    // เพิ่ม Event Listener ให้ปุ่ม
+    muteButton.addEventListener('click', toggleMute);
+
+    // --- WebRTC Logic (เหมือนเดิม + เพิ่ม updateStatus) ---
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
 
-      // เมื่อหา "เส้นทาง" (Candidate) เจอ ให้ส่งไปบอกอีกฝั่ง
       pc.onicecandidate = (event) => {
         if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'candidate', payload: event.candidate }));
         }
       };
 
-      // เมื่อ "สตรีม" มาถึง!
       pc.ontrack = (event) => {
         console.log('Got remote track!');
         videoEl.srcObject = event.streams[0];
       };
       
       pc.onconnectionstatechange = (event) => {
-          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
-              console.log('Peer disconnected. Re-setting video.');
-              videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
+          const state = pc.connectionState;
+          console.log('PeerConnection State:', state);
+          if (state === 'connected') {
+              updateStatus(true, 'Stream Connected'); // เชื่อมต่อสำเร็จ
+          } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+              updateStatus(false, 'Stream Disconnected'); // การเชื่อมต่อสตรีมหลุด
               if(pc) pc.close();
               pc = null;
+          } else {
+              updateStatus(true, `Stream ${state}...`); // กำลังเชื่อมต่อ (connecting, checking)
           }
       };
     }
 
     function connectWebSocket() {
+      updateStatus(false, 'Connecting to server...'); // เริ่มต้น: กำลังเชื่อมต่อ Server
       ws = new WebSocket(WSS_URL);
 
       ws.onopen = () => {
         console.log('Connected to Signaling Server as Monitor');
-        createPeerConnection(); // สร้าง PeerConnection เมื่อต่อ WS สำเร็จ
+        updateStatus(true, 'Server Connected'); // เชื่อมต่อ Server สำเร็จ
+        createPeerConnection(); 
       };
 
-      // เมื่อได้รับข้อความจาก Signaling Server
       ws.onmessage = async (message) => {
         const data = JSON.parse(message.data);
-        // console.log('Received data:', data.type);
-
         switch (data.type) {
-          case 'offer': // 1. ได้รับ "คำเชิญ" (Offer) จากคนขับ
-            if (!pc) {
-              createPeerConnection(); // สร้างใหม่ถ้ายังไม่มี
-            }
-            
+          case 'offer': 
+            if (!pc) createPeerConnection(); 
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-            
-            // 2. สร้าง "คำตอบ" (Answer)
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            
-            // 3. ส่ง "คำตอบ" กลับไป
             ws.send(JSON.stringify({ type: 'answer', payload: answer }));
             break;
-            
-          case 'candidate': // ได้รับ "เส้นทาง" (Candidate) จากคนขับ
+          case 'candidate': 
             if (pc && data.payload) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(data.payload));
-              } catch (e) {
-                console.error('Error adding received ice candidate', e);
-              }
+              try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); } 
+              catch (e) { console.error('Error adding ICE candidate', e); }
             }
             break;
-            
           case 'info':
             console.log('Server Info:', data.message);
             break;
@@ -114,16 +189,17 @@
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
+        updateStatus(false, 'Server Disconnected. Retrying...'); // Server หลุด
         if(pc) {
           pc.close();
           pc = null;
         }
-        videoEl.srcObject = null;
-        setTimeout(connectWebSocket, 3000); // พยายามต่อใหม่ใน 3 วิ
+        setTimeout(connectWebSocket, 3000); 
       };
       
       ws.onerror = (err) => {
         console.error('WebSocket Error:', err);
+        updateStatus(false, 'Server Connection Error'); // เกิด Error
       };
     }
 
