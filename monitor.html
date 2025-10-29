@@ -17,13 +17,19 @@
 
   <script>
     // 1. ตั้งค่า Server (STUN ฟรี, TURN ฟรีสำหรับเทส)
-    const WSS_URL = 'wss://your-render-url.onrender.com'; // ❗️❗️ เปลี่ยนเป็น URL ของคุณ
+    // === URL ถูกอัปเดตแล้ว ===
+    const WSS_URL = 'wss://project-1-6xta.onrender.com'; 
     
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { // TURN Server ฟรี (อาจช้า/ล่มได้)
         urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
         username: 'openrelayproject',
         credential: 'openrelayproject'
       }
@@ -38,7 +44,7 @@
 
       // เมื่อหา "เส้นทาง" (Candidate) เจอ ให้ส่งไปบอกอีกฝั่ง
       pc.onicecandidate = (event) => {
-        if (event.candidate) {
+        if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'candidate', payload: event.candidate }));
         }
       };
@@ -47,6 +53,15 @@
       pc.ontrack = (event) => {
         console.log('Got remote track!');
         videoEl.srcObject = event.streams[0];
+      };
+      
+      pc.onconnectionstatechange = (event) => {
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
+              console.log('Peer disconnected. Re-setting video.');
+              videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
+              pc.close();
+              pc = null;
+          }
       };
     }
 
@@ -65,6 +80,10 @@
 
         switch (data.type) {
           case 'offer': // 1. ได้รับ "คำเชิญ" (Offer) จากคนขับ
+            if (!pc) {
+              createPeerConnection(); // สร้างใหม่ถ้ายังไม่มี
+            }
+            
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
             
             // 2. สร้าง "คำตอบ" (Answer)
@@ -76,8 +95,12 @@
             break;
             
           case 'candidate': // ได้รับ "เส้นทาง" (Candidate) จากคนขับ
-            if (data.payload) {
-              await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+            if (pc && data.payload) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+              } catch (e) {
+                console.error('Error adding received ice candidate', e);
+              }
             }
             break;
             
@@ -89,7 +112,11 @@
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
-        pc.close();
+        if(pc) {
+          pc.close();
+          pc = null;
+        }
+        videoEl.srcObject = null;
         setTimeout(connectWebSocket, 3000); // พยายามต่อใหม่ใน 3 วิ
       };
       

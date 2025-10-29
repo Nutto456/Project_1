@@ -172,6 +172,8 @@
     <section class="action-bar flex gap-2">
         <button id="btnCalib" class="px-4 py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg flex-1 disabled:bg-indigo-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Calibrate</button>
         <button id="btnToggle" class="px-4 py-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg flex-1 disabled:bg-blue-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Start</button>
+        
+        <button id="btnShare" class="px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 font-semibold shadow-lg flex-1 disabled:bg-green-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Share</button>
         <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
     </section>
     </main>
@@ -228,9 +230,9 @@
     const sndUp    = document.getElementById('sndUp');
     const sndRight = document.getElementById('sndRight');
     const sndLeft  = document.getElementById('sndLeft');
-
-    // (ลบ Elements ของ Show Pose ออก)
-
+    
+    // === NEW ELEMENT HOOK ===
+    const btnShare = document.getElementById('btnShare');
 
     // === Config ===
     const THRESH = {
@@ -546,7 +548,14 @@
         } else {
           pitchOffset=lastP.pitch; yawOffset=lastP.yaw;
           calibrated=true;
-          if (!isRunning) btnToggle.disabled = false;
+          
+          // === NEW HOOK ADDED ===
+          if (!isRunning) { 
+            btnToggle.disabled = false; 
+            btnShare.disabled = false; // เปิดปุ่ม Share
+          }
+          // ======================
+
           canvas.style.outline='3px solid #10b981';
           setTimeout(()=>{canvas.style.outline='none';},520);
           showAlert('Calibrated!', 'พร้อมเริ่มใช้งาน', 'success', 2200);
@@ -587,26 +596,25 @@
           if(!modelsReady)await initModels();
           isRunning=true;
           btnToggle.textContent='Stop';
-          // ลบ: btnTogglePose.disabled = true;
+          btnShare.disabled = false; // <-- NEW HOOK ADDED
           driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
           scheduleNext(loop);
         }catch(e){
           console.error(e); showAlert('ข้อผิดพลาด', 'เริ่มระบบไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต', 'error', 5000);
-          // ลบ: btnTogglePose.disabled = false;
           btnCalib.disabled=false; btnSos.disabled = false;
         }
       } else {
         isRunning=false;
         btnToggle.textContent='Start';
         btnToggle.disabled = true;
+        btnShare.disabled = true; // <-- NEW HOOK ADDED
+        btnShare.textContent = 'Share'; // <-- NEW HOOK ADDED
         calibrated = false;
-        // ลบ: if(showPose){...}
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
         stopAllSoundsNow();
         isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
-        // ลบ: btnTogglePose.disabled = false;
         btnCalib.disabled = false; btnSos.disabled = false;
         const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
         ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -614,7 +622,6 @@
       }
     });
 
-    // (ลบ Event Listener ของ btnTogglePose ทั้งหมด)
 
     // === NEW: Initialisation (NEW: Loading Flow) ===
     const loadingModal = document.getElementById('loadingModal');
@@ -645,10 +652,171 @@
         btnCalib.disabled = true;
         btnToggle.disabled = true;
         btnSos.disabled = true;
+        btnShare.disabled = true; // <-- NEW HOOK ADDED
       }
     })();
   </script>
 
+  <script>
+  { // ใช้ { } เพื่อกันตัวแปรชนกัน
+    // === URL ถูกอัปเดตแล้ว ===
+    const WSS_URL = 'wss://project-1-6xta.onrender.com'; 
+    
+    const iceServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { // TURN Server ฟรี (อาจช้า/ล่มได้)
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ];
+
+    const btnShare = document.getElementById('btnShare');
+    const driverVideo = document.getElementById('video'); // เราใช้ Video จากระบบเดิม
+    
+    let pc; // PeerConnection
+    let ws; // WebSocket
+    let isSharing = false;
+
+    function createPeerConnection() {
+      pc = new RTCPeerConnection({ iceServers: iceServers });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'candidate', payload: event.candidate }));
+        }
+      };
+      
+      // เมื่อการเชื่อมต่อสำเร็จ
+      pc.onconnectionstatechange = (event) => {
+          if (pc.connectionState === 'connected') {
+              console.log('Peer connected!');
+          }
+          if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+              console.log('Peer disconnected.');
+              stopSharing(); // หยุดเมื่อหลุด
+          }
+      };
+    }
+    
+    function connectWebSocket() {
+      ws = new WebSocket(WSS_URL);
+      
+      ws.onopen = () => {
+        console.log('Connected to Signaling Server as Driver');
+      };
+      
+      ws.onmessage = async (message) => {
+        const data = JSON.parse(message.data);
+        
+        switch (data.type) {
+          case 'answer': // 4. ได้รับ "คำตอบ" จาก Monitor
+            if (pc) {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+            }
+            break;
+          case 'candidate': // ได้รับ "เส้นทาง" จาก Monitor
+            if (pc && data.payload) {
+              await pc.addIceCandidate(new RTCIceCandidate(data.payload));
+            }
+            break;
+          case 'info':
+            console.log('Server Info:', data.message);
+            break;
+        }
+      };
+      
+      ws.onclose = () => {
+        console.log('Disconnected from server.');
+        if (isSharing) {
+          stopSharing();
+        }
+        ws = null;
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket Error:', err);
+        stopSharing();
+      }
+    }
+
+    async function startSharing() {
+      console.log('Starting stream share...');
+      // 0. ตรวจสอบว่าระบบรันอยู่ (isRunning จาก module script)
+      //    (เราเช็คโดยการ disable/enable ปุ่มแทนแล้ว)
+      
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+        // รอให้ WS ต่อสำเร็จก่อน (รอสัก 2 วินาที)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.error('Failed to connect to signaling server.');
+            alert('ไม่สามารถเชื่อมต่อ Server (Signaling) ได้');
+            return;
+        }
+      }
+      
+      if (!pc) {
+        createPeerConnection();
+      }
+      
+      // 1. เอาสตรีมกล้อง (ที่มีอยู่แล้ว) มาใช้
+      const stream = driverVideo.srcObject;
+      if (!stream) {
+          console.error('No video stream available!');
+          alert('ไม่พบสตรีมกล้อง (กรุณากด Start ก่อน)');
+          return;
+      }
+      
+      // 2. เพิ่มสตรีมวิดีโอเข้าไปใน PeerConnection
+      stream.getTracks().forEach(track => {
+        // ตรวจสอบว่า track นี้ถูกเพิ่มไปแล้วหรือยัง
+        if (!pc.getSenders().find(s => s.track === track)) {
+          pc.addTrack(track, stream);
+        }
+      });
+      
+      // 3. สร้าง "คำเชิญ" (Offer)
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      
+      // 4. ส่ง "คำเชิญ" ไปยัง Server
+      ws.send(JSON.stringify({ type: 'offer', payload: offer }));
+      
+      isSharing = true;
+      btnShare.textContent = 'Stop Share';
+    }
+    
+    function stopSharing() {
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      ws = null;
+      isSharing = false;
+      btnShare.textContent = 'Share';
+      console.log('Sharing stopped.');
+    }
+
+    // เชื่อมต่อปุ่ม
+    btnShare.addEventListener('click', () => {
+      if (!isSharing) {
+        startSharing();
+      } else {
+        stopSharing();
+      }
+    });
+  }
+  </script>
   <script>
     (function(){const b=document.getElementById('btnTheme'),s=document.getElementById('themeIconSun'),m=document.getElementById('themeIconMoon'),h=document.documentElement;function set(t){if(t==='dark'){h.classList.add('dark');s.classList.remove('hidden');s.classList.add('block');m.classList.remove('block');m.classList.add('hidden');localStorage.setItem('theme','dark');}else{h.classList.remove('dark');s.classList.remove('block');s.classList.add('hidden');m.classList.remove('hidden');m.classList.add('block');localStorage.setItem('theme','light');}}const saved=localStorage.getItem('theme');if(saved==='light')set('light');else set('dark');b.addEventListener('click',()=>{if(h.classList.contains('dark'))set('light');else set('dark');});})();
   </script>
