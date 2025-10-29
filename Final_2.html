@@ -525,7 +525,8 @@
                  }
              }
              // อัปเดต currentAudioAlert ทันทีที่สั่งเล่นเสียงใหม่
-             currentAudioAlert = soundToPlayId;
+             // (ย้ายไปอยู่ใน playAlertSound แล้ว)
+             // currentAudioAlert = soundToPlayId;
           } else {
               // ถ้าไม่มีเสียงใหม่ (soundToPlayId เป็น null) ให้ตั้ง currentAudioAlert เป็น null ด้วย
               currentAudioAlert = null;
@@ -834,8 +835,14 @@
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           console.log('No connection, attempting to connect...');
           await connectWebSocket();
-          // ไม่ต้อง showAlert สำเร็จตรงนี้ รอ onconnectionstatechange
-        }
+
+          // === **** เพิ่ม Delay 500ms **** ===
+          console.log('WebSocket connected, waiting 500ms before creating offer...');
+          await new Promise(resolve => setTimeout(resolve, 500)); // รอ 0.5 วินาที
+          // === **** จบส่วนที่เพิ่ม **** ===
+
+        } // จบ if (!ws...)
+
 
         if (!pc) {
           createPeerConnection();
