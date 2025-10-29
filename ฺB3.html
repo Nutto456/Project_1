@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Real-time Driver Monitoring System</title>
+  <link rel="icon" href="data:,">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+
+  <script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <style>
+    /* ... (CSS Styles ทั้งหมดเหมือนเดิม) ... */
+     :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+    .video-wrap { position: relative; width: 100%; max-width: 560px; aspect-ratio: 3/4; }
+    @media (max-width: 768px){ .video-wrap{ max-width:100%; aspect-ratio: unset; height: calc(100dvh - 120px); } }
+    #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    #overlay { position: absolute; inset: 0; transform: scaleX(-1); }
+    .action-bar { position: fixed; inset: auto 1rem 1rem 1rem; padding-bottom: calc(var(--safe-inset-bottom) + 0.5rem); z-index: 60; }
+    .status-badge { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 999px; }
+    
+    /* === UI MOD: indicator-group (Pill shape, more blur) === */
+    .indicator-group { 
+      position: fixed; top: 1rem; right: 1rem; z-index: 50; 
+      display: flex; gap: 0.5rem; padding: 0.5rem; 
+      background-color: rgba(0, 0, 0, 0.5); 
+      backdrop-filter: blur(10px); /* Increased blur */
+      border-radius: 999px; /* Pill shape */
+      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    }
+    .indicator-group svg { color: white; }
+    
+    /* === UI MOD: indicator-score-group (More padding, more blur, border) === */
+    .indicator-score-group { 
+      position: fixed; top: 5rem; right: 1rem; z-index: 50; 
+      display: flex; flex-direction: column; gap: 0.5rem; 
+      padding: 0.75rem 1rem; /* More horizontal padding */
+      background-color: rgba(0, 0, 0, 0.5); 
+      backdrop-filter: blur(10px); /* Increased blur */
+      border-radius: 0.75rem; /* Slightly larger radius */
+      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+      color: white; font-size: 0.875rem; min-width: 110px; /* Increased min-width */
+    }
+    .indicator-score-item { display: flex; justify-content: space-between; gap: 1rem; font-weight: 600; }
+    .indicator-score-item span:first-child { font-weight: 400; color: #cbd5e1; opacity: 0.8; } /* Faded label */
+    .indicator-score-item span:last-child { font-weight: 700; font-size: 1rem; color: #ffffff; } /* Bigger, brighter score */
+    
+    .alert-popup { position: fixed; inset: auto 1rem calc(1rem + var(--safe-inset-bottom) + 4.5rem) 1rem; z-index: 70; display: none; }
+    .dark .alert-popup { background: none; }
+    .alert-popup.show { display: block; }
+
+    /* === UI MOD: alert-popup .card (More padding, blur, and radius) === */
+    .alert-popup .card { 
+      padding: 1rem 1.5rem; /* Increased padding */
+      border-radius: 1rem; /* Increased radius */
+      text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+      backdrop-filter: blur(12px); /* Increased blur */
+      background-color: rgba(226, 232, 240, 0.85); 
+      border: 1px solid rgba(0,0,0,0.05); 
+    }
+    .dark .alert-popup .card { background-color: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255,255,255,0.1); }
+    .alert-popup .card.success { background-color: #10b981; border: none; }
+    .alert-popup .card.error { background-color: #dc2626; border: none; }
+    .alert-popup .card.warning { background-color: #f59e0b; border: none; }
+    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2, .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p { color: white; opacity: 1; }
+    .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText { opacity: 0.9; }
+    .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child { color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem; }
+    
+    /* === UI MOD: alert-popup .card h2 (Bigger title) === */
+    .alert-popup .card h2 { 
+      font-size: 1.25rem; /* Increased font size */
+      font-weight: 600; color: #1e293b; margin-bottom: 0.1rem; 
+    }
+    .dark .alert-popup .card h2 { color: #f1f5f9; }
+    .alert-popup .card p { color: #475569; font-size: 0.875rem; }
+    .dark .alert-popup .card p { color: #cbd5e1; }
+    .alert-popup .card p:last-child { font-size: 0.75rem; margin-top: 0.4rem; color: #64748b; }
+    .dark .alert-popup .card p:last-child { color: #cbd5e1; opacity: 0.8; }
+    
+    /* === UI MOD: #setupModal (More blur) === */
+    #setupModal { 
+      position: fixed; inset: 0; z-index: 110; 
+      display: flex; align-items: center; justify-content: center; padding: 1rem; 
+      background-color: rgba(0, 0, 0, 0.8); /* Darker bg */
+      backdrop-filter: blur(10px); /* Increased blur */
+    }
+    /* === UI MOD: #setupModal .card (Bigger radius) === */
+    #setupModal .card { 
+      width: 100%; max-width: 400px; padding: 1.5rem 2rem; 
+      border-radius: 1rem; /* Increased radius */
+      background-color: white; box-shadow: 0 10px 15px rgba(0,0,0,0.1); 
+    }
+    .dark #setupModal .card { background-color: #1e293b; }
+    
+    /* === UI MOD: #setupModal input (Bigger radius) === */
+    #setupModal input[type="email"] { 
+      width: 100%; padding: 0.5rem 0.75rem; 
+      border-radius: 0.5rem; /* Increased radius (rounded-lg) */
+      border: 1px solid #cbd5e1; background-color: white; color: #1e293b; 
+    }
+    .dark #setupModal input[type="email"] { border-color: #475569; background-color: #334155; color: #f1f5f9; }
+    #setupModal input[type="email"]:focus { outline: 2px solid #4f46e5; border-color: transparent; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+
+</head>
+
+<body class="bg-white dark:bg-slate-900 min-h-screen text-slate-900 dark:text-white transition-colors duration-200">
+
+  <div id="setupModal"> <div class="card"> <h2 class="text-xl font-bold text-center mb-2 text-slate-900 dark:text-white">ตั้งค่าก่อนใช้งาน</h2> <p class="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">กรุณาระบุอีเมลผู้ติดต่อฉุกเฉิน (SOS) 1 ท่าน เพื่อดำเนินการต่อ</p> <div class="space-y-3"> <div> <label for="sosEmailInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">อีเมลผู้ติดต่อ (Email)</label> <input type="email" id="sosEmailInput" placeholder="example@email.com" /> </div> 
+        <button id="btnSaveEmail" class="w-full px-4 py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg disabled:bg-indigo-400 transition-all duration-150 border border-white/10"> บันทึกและเริ่มใช้งาน </button> 
+      </div> </div> </div>
+
+  <div class="fixed top-4 left-4 z-50"> <button id="btnTheme" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"> <svg id="themeIconMoon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-3.833 2.067-7.17 5.218-8.981a.75.75 0 01.819.162z" clip-rule="evenodd" /> </svg> <svg id="themeIconSun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 hidden"> <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V18.75a.75.75 0 01.75-.75zM5.166 17.834a.75.75 0 00-1.06 1.06l1.59 1.591a.75.75 0 101.061-1.06l-1.59-1.591zM6 12a.75.75 0 01-.75-.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.166 5.106a.75.75 0 001.06 1.06l1.591-1.59a.75.75 0 00-1.06-1.061L6.166 5.106z" /> </svg> </button> </div>
+
+  <main class="mx-auto max-w-5xl p-4">
+    <header class="mb-3 text-center"> <h1 class="text-2xl font-bold">Real-time Driver Monitoring System</h1> <p class="text-slate-500 dark:text-slate-400 text-sm">ตรวจจับการขับขี่ในแบบเรียลไทม์</p> </header>
+
+    <section class="video-wrap mx-auto rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800 shadow-lg border border-gray-300 dark:border-gray-700"> 
+      <video id="video" autoplay playsinline muted></video> 
+      <canvas id="overlay"></canvas> 
+    </section>
+
+    <div class="indicator-group"> <div id="eyesStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.125 1.125 0 010-1.113zM12 17.25a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg> </div> <div id="phoneStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 013-3h15a3 3 0 013 3v13.5a3 3 0 01-3 3h-15a3 3 0 01-3-3V4.5zM15 15.75a.75.75 0 00.75.75h2.25a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75H15a.75.75 0 00-.75.75v7.5z" clip-rule="evenodd" /></svg> </div> <div id="handsStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 01.022 1.063L5.55 11.25a3 3 0 00-1.757 2.252l-.64 3.425a.75.75 0 01-1.096.38l-1.11-1.11a.75.75 0 01.38-1.096l3.425-.641a3 3 0 002.252-1.757l8.02-8.02A.75.75 0 0121.83 2.5l-2.75 2.75a.75.75 0 01-1.06-.022zM21 12a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5A.75.75 0 0121 12zM15 18a.75.75 0 01-.75.75H12a.75.75 0 010-1.5h2.25A.75.75 0 0115 18zM18 15a.75.75 0 01-.75.75H15a.75.75 0 010-1.5h2.25A.75.75 0 0118 15zM6.75 19.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H7.5a.75.75 0 01-.75-.75z" clip-rule="evenodd" /><path d="M16.5 7.5a.75.75 0 01.75-.75h.75a.75.75 0 010 1.5h-.75A.75.75 0 0116.5 7.5z" /></svg> </div> <div id="wheelStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M2.55 7.525a8.25 8.25 0 0110.152-4.144L12 4.582a6.75 6.75 0 00-8.237 3.328l-1.213-.385zM12 18a6 6 0 100-12 6 6 0 000 12zM11.25 9a.75.75 0 00-1.5 0v3.257a3 3 0 00-.776-.804l-1.724-1.725a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l2.25-2.25a.75.75 0 00-1.06-1.06l-1.725 1.724a3 3 0 00-.804.776V9z" clip-rule="evenodd" /><path d="M19.423 9.424a.75.75 0 00-.735-1.06l-2.434.646a.75.75 0 00-.372 1.455l2.062-.549.278.847a.75.75 0 001.442-.473L19.5 9.75l.138-.415.286.076a.75.75 0 00.347-1.458l-2.06-.549-.12.364a.75.75 0 00.223.882zM15.908 4.296a.75.75 0 00-.53-1.285l-1.21-.384a.75.75 0 00-.38.38l-.05.151.05.15a.75.75 0 00.38.38l1.21.385a.75.75 0 00.53-.38l.05-.15-.05-.15zM21.75 12a.75.75 0 00-.75-.75H19a.75.75 0 000 1.5h2A.75.75 0 0021.75 12zM17.25 20a.75.75 0 000 1.5h2a.75.75 0 000-1.5h-2zM12.75 22.5a.75.75 0 000 1.5h.75a.75.75 0 000-1.5h-.75z" /></svg> </div> </div>
+
+    <div class="indicator-score-group">
+      <div class="indicator-score-item"> <span>Score:</span> <span id="driverScoreDisplay">100</span> </div>
+      <div class="indicator-score-item"> <span>Speed:</span> <span id="speedDisplay">0</span> </div>
+    </div>
+
+    <div id="alertBox" class="alert-popup"> <div id="alertCard" class="card"> <h2 id="alertText"></h2> <p id="alertSubText" class="mt-1"></p> <p class="mt-4 final-safety-text">กรุณาขับขี่ปลอดภัยด้วยนะครับ</p> </div> </div>
+
+    <section class="action-bar flex gap-2">
+        <button id="btnCalib" class="px-4 py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg flex-1 disabled:bg-indigo-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Calibrate</button>
+        <button id="btnToggle" class="px-4 py-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg flex-1 disabled:bg-blue-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Start</button>
+        <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
+    </section>
+    </main>
+
+  <audio id="sndEyes"     src="./static/Sound/sndEyes.mp3" preload="auto"></audio>
+  <audio id="sndYawn"     src="./static/Sound/sndYawn.mp3" preload="auto"></audio>
+  <audio id="sndPhone"    src="./static/Sound/sndPhone.mp3" preload="auto"></audio>
+  <audio id="sndWheel"    src="./static/Sound/sndWheel.mp3" preload="auto"></audio>
+  <audio id="sndLook"     src="./static/Sound/sndLook.mp3" preload="auto"></audio>
+  <audio id="sndScore"    src="./static/Sound/sndScore.mp3" preload="auto"></audio>
+  <audio id="sndSos"      src="./static/Sound/sndSos.mp3" preload="auto"></audio>
+  <audio id="sndFailsos"  src="./static/Sound/sndFailsos.mp3" preload="auto"></audio>
+  <audio id="sndCali"     src="./static/Sound/sndCali.mp3" preload="auto"></audio>
+  <audio id="sndDown"     src="./static/Sound/sndDown.mp3" preload="auto"></audio>
+  <audio id="sndUp"       src="./static/Sound/sndUp.mp3" preload="auto"></audio>
+  <audio id="sndRight"    src="./static/Sound/sndRight.mp3" preload="auto"></audio>
+  <audio id="sndLeft"     src="./static/Sound/sndLeft.mp3" preload="auto"></audio>
+
+
+  <script type="module">
+    import { FaceLandmarker, HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    // === Elements ===
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const btnToggle = document.getElementById('btnToggle');
+    const btnCalib = document.getElementById('btnCalib');
+    const alertBox = document.getElementById('alertBox');
+    const alertCard = document.getElementById('alertCard');
+    const alertTextEl = document.getElementById('alertText');
+    const alertSubTextEl = document.getElementById('alertSubText');
+    const eyesStatusIcon = document.getElementById('eyesStatus');
+    const phoneStatusIcon = document.getElementById('phoneStatus');
+    const handsStatusIcon = document.getElementById('handsStatus');
+    const wheelStatusIcon = document.getElementById('wheelStatus');
+    const sndEyes  = document.getElementById('sndEyes');
+    const sndYawn  = document.getElementById('sndYawn');
+    const sndPhone = document.getElementById('sndPhone');
+    const sndWheel = document.getElementById('sndWheel');
+    const sndLook  = document.getElementById('sndLook');
+    const scoreDisplay = document.getElementById('driverScoreDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const sndScore = document.getElementById('sndScore');
+    const setupModal = document.getElementById('setupModal');
+    const btnSaveEmail = document.getElementById('btnSaveEmail');
+    const sosEmailInput = document.getElementById('sosEmailInput');
+    const btnSos = document.getElementById('btnSos');
+    const sndSos = document.getElementById('sndSos');
+    const sndFailsos = document.getElementById('sndFailsos');
+    const sndCali = document.getElementById('sndCali');
+    // 2. ประกาศตัวแปรสำหรับ Element เสียงใหม่
+    const sndDown  = document.getElementById('sndDown'); 
+    const sndUp    = document.getElementById('sndUp');
+    const sndRight = document.getElementById('sndRight');
+    const sndLeft  = document.getElementById('sndLeft');
+
+    // ลบ: Elements ของ Show Pose
+    // const btnTogglePose = document.getElementById('btnTogglePose');
+    // const poseDisplay = document.getElementById('poseDisplay');
+    // const yawDisplay = document.getElementById('yawDisplay');
+    // const pitchValue = document.getElementById('pitchValue');
+    // const yawValue = document.getElementById('yawValue');
+
+
+    // === Config ===
+    const THRESH = {
+      EYE_CLOSED: 0.10, YAWN: 0.25, EYE_CLOSED_SEC: 0.8, YAWN_SEC: 1.5,
+      BOTH_HANDS_UP_SEC: 2, PITCH_DOWN: 4, PITCH_UP: -15, YAW_LEFT: 10, YAW_RIGHT: -12,
+      PHONE_SCORE: 0.55, WHEEL_OFF_ALERT_SEC: 5.0, FACE_LOST_ALERT_SEC: 2.0,
+      PHONE_HAND_DISTANCE: 0.3, PHONE_LOST_GRACE_SEC: 1.5, YAW_ALERT_SEC: 1.5, PITCH_DOWN_SEC: 1.5,
+      SCORE_REDUCE_AMOUNT: 5, SCORE_REDUCE_COOLDOWN: 2000, SCORE_REGEN_AMOUNT: 0.2, SCORE_REGEN_COOLDOWN: 1000
+    };
+
+    // === State ===
+    let isRunning = false, isBusy = false, lastTick = 0;
+    // ลบ: showPose
+    let calibrated = false, wheelOffStart = null;
+    let faceLandmarker, handLandmarker, cocoSsdModel = null;
+    let modelsReady = false, phoneReady = false;
+    let pitchOffset=0, yawOffset=0, pitchEMA=null, yawEMA=null, rollEMA=null;
+    let eyeStart=null, yawnStart=null, handsStart=null, lastPhoneDetections = [];
+    let yawLeftStart = null, yawRightStart = null, pitchDownStart = null;
+    let hasAlertedYawLeft = false, hasAlertedYawRight = false, hasAlertedPitchDown = false;
+    let faceLastSeen = null;
+    const poseGain = 1.2, yawGain = 2.0, pitchGain = 1.4;
+    let driverScore = 100, speedKPH = 0, scoreLastReduced = 0, scoreLastRegen = 0, isTakingBreakAlert = false;
+    let isEyeClosed = false;
+    let hasAlertedEyes = false, hasAlertedYawn = false, hasAlertedPhone = false, hasAlertedHands = false, hasAlertedWheel = false;
+    let phoneLastSeenTime = null;
+    let currentAudioAlert = null, fadeOutIntervals = {}, geolocationWatcher = null;
+    let hasPlayedScoreSound = false;
+    let scoreSoundTimeout = null;
+    let sosEmail = '';
+    let currentCoords = null;
+    let autoSosSent = false;
+    let alertTimeoutId = null; // ID สำหรับ setTimeout ของ Alert
+    let isSosAlertActive = false; // สถานะใหม่: เพื่อระบุว่า Alert SOS กำลังแสดงอยู่หรือไม่
+
+    // === Utils ===
+    const ema = (p,v,a=0.35)=>(!Number.isFinite(v)?p:(p==null?v:a*v+(1-a)*p));
+    const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+    const rad2deg=(r)=>r*57.2957795;
+    const getDistance = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+    function showAlert(title, subtext, type, duration = 3000) {
+      if (alertTimeoutId) { clearTimeout(alertTimeoutId); alertTimeoutId = null; }
+      alertTextEl.textContent = title;
+      alertSubTextEl.textContent = subtext;
+      alertCard.className = `card ${type}`;
+      alertBox.classList.add('show');
+      
+      // อัปเดตสถานะ Alert SOS
+      isSosAlertActive = (title === 'ส่ง SOS สำเร็จ!' || title === 'ส่ง SOS ล้มเหลว!');
+
+      if (duration > 0) {
+        const expectedTitle = title;
+        alertTimeoutId = setTimeout(() => {
+          if (alertTextEl.textContent === expectedTitle) { 
+            alertBox.classList.remove('show'); 
+            if (isSosAlertActive) {
+                isSosAlertActive = false; // รีเซ็ตสถานะเมื่อ Alert SOS หายไป
+                if (isRunning) loop(); // บังคับลูปทำงานทันทีเพื่อตรวจสอบ Alert ความเสี่ยง
+            }
+          }
+          alertTimeoutId = null;
+        }, duration);
+      } else {
+        // สำหรับ Alert ที่ Duration = 0 (Alert ความเสี่ยง)
+        alertTimeoutId = null; 
+      }
+    }
+
+    function initializeEmailJS() { /* ... (เหมือนเดิม) ... */ try { emailjs.init({ publicKey: "GqpoTgEB7SSDXWGPW" }); console.log("EmailJS Initialized."); } catch (e) { console.error("Failed to initialize EmailJS:", e); showAlert("SOS Error", "ตั้งค่า EmailJS ล้มเหลว", "error", 5000); } }
+
+    async function sendSOSLogic(isAuto = false) { /* ... (เหมือนเดิม) ... */ console.log(`sendSOSLogic called (isAuto: ${isAuto}). Current Coords:`, currentCoords, "SOS Email:", sosEmail); if (!sosEmail) { console.error("SOS Error: ไม่พบอีเมลผู้ติดต่อฉุกเฉิน!"); return { success: false, error: "ไม่ได้ตั้งค่าอีเมลผู้ติดต่อ" }; } if (!currentCoords) { console.warn("SOS Warning: ยังไม่มีข้อมูล GPS ล่าสุด..."); return { success: false, error: "ยังไม่มีข้อมูล GPS" }; } const { lat, lon } = currentCoords; const mapLink = `https://www.google.com/maps?q=$${lat},${lon}`; const accuracy = currentCoords.accuracy?.toFixed(1) || 'ไม่ทราบ'; const templateParams = { to_email: sosEmail, map_link: mapLink, accuracy: accuracy }; console.log("Prepared templateParams:", templateParams); const SERVICE_ID = "service_d3q6ubr"; const TEMPLATE_ID = "template_d76czdh"; console.log(`Attempting emailjs.send with ServiceID: ${SERVICE_ID}, TemplateID: ${TEMPLATE_ID}`); try { const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams); console.log('SOS Email SUCCESS!', response.status, response.text); return { success: true }; } catch (error) { console.error('SOS Email FAILED...', error); return { success: false, error: error }; } }
+
+    // === Sound Functions ===
+    function playAlertSound(id, el) { if(fadeOutIntervals[id]){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];} if(currentAudioAlert!==id)stopAllSoundsNow(id); el.loop=true; el.volume=1.0; el.play().catch(()=>{}); currentAudioAlert=id; }
+    function stopAlertSound(id, el) { if(!el||el.paused||fadeOutIntervals[id])return; el.loop=false; fadeOutIntervals[id]=setInterval(()=>{ let nv=el.volume-0.1; if(nv<=0){clearInterval(fadeOutIntervals[id]);delete fadeOutIntervals[id];el.pause();el.currentTime=0;el.volume=1.0;if(currentAudioAlert===id)currentAudioAlert=null;}else el.volume=nv; },80); }
+    function stopAllSoundsNow(exceptId = null) {
+        const allSounds = {
+            'EYES': sndEyes, 'YAWN': sndYawn, 'PHONE': sndPhone, 'WHEEL': sndWheel,
+            'LOOK': sndLook, 'SCORE': sndScore, 'SOS': sndSos, 'FAILSOS': sndFailsos,
+            'CALI': sndCali,
+            // 3. เพิ่มเสียงใหม่ในรายการทั้งหมด
+            'DOWN': sndDown, 'UP': sndUp, 'RIGHT': sndRight, 'LEFT': sndLeft
+        };
+        for (const id in allSounds) {
+            if (id !== exceptId) {
+                const el = allSounds[id];
+                if (fadeOutIntervals[id]) { clearInterval(fadeOutIntervals[id]); delete fadeOutIntervals[id]; }
+                el.pause(); el.currentTime = 0; el.volume = 1.0; el.loop = false;
+            }
+        }
+        if (currentAudioAlert && currentAudioAlert !== exceptId) currentAudioAlert = null;
+        if (scoreSoundTimeout) { clearTimeout(scoreSoundTimeout); scoreSoundTimeout = null; }
+    }
+
+
+    // === MediaPipe Setup (เหมือนเดิม) ===
+    const EYE_L=[33,160,158,133,153,144], EYE_R=[263,387,385,362,380,373]; const MOUTH_TOP=13,MOUTH_BOTTOM=14,MOUTH_LEFT=61,MOUTH_RIGHT=291;
+    const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y); const ear=(lm,i)=>(dist(lm[i[1]],lm[i[5]])+dist(lm[i[2]],lm[i[4]]))/(2*dist(lm[i[0]],lm[i[3]])); const marSimple=(lm)=>dist(lm[MOUTH_TOP],lm[MOUTH_BOTTOM])/(dist(lm[MOUTH_LEFT],lm[MOUTH_RIGHT])+1e-6);
+    function eulerFromR(r){ const r00=r[0],r01=r[1],r02=r[2],r10=r[3],r11=r[4],r12=r[5],r20=r[6],r21=r[7],r22=r[8]; const sy=Math.hypot(r00,r10); let p,y,rl; if(sy>1e-6){p=Math.atan2(-r20,sy);y=Math.atan2(r10,r00);rl=Math.atan2(r21,r22);}else{p=Math.atan2(-r20,sy);y=Math.atan2(-r01,r11);rl=0;} return {pitch:rad2deg(p),yaw:rad2deg(y),roll:rad2deg(rl)}; }
+    function poseFromMatrixAuto(m4){ if(!m4) return null; const a=Array.from(m4); if(a.length<16)return null; const Rr=[a[0],a[1],a[2],a[4],a[5],a[6],a[8],a[9],a[10]], Rc=[a[0],a[4],a[8],a[11],a[5],a[9],a[2],a[6],a[10]]; const er=eulerFromR(Rr),ec=eulerFromR(Rc); const mr=Math.abs(er.pitch)+Math.abs(er.yaw)+Math.abs(er.roll), mc=Math.abs(ec.pitch)+Math.abs(ec.yaw)+Math.abs(ec.roll); const uc=mc>mr*1.1; const e=uc?ec:er; return {pitch:clamp(e.pitch,-60,60),yaw:clamp(e.yaw,-90,90),roll:clamp(e.roll,-60,60)}; }
+    function poseSimple(lm){ const L=lm[33],R=lm[263],N=lm[1]; if(!L||!R||!N) return null; const mX=(L.x+R.x)/2,mY=(L.y+R.y)/2; const y=(N.x-mX)*260, p=(mY-N.y)*360; return {pitch:clamp(p,-60,66),yaw:clamp(y,-90,90),roll:0}; }
+    function resizeCanvas(){ const w=video.videoWidth||640,h=video.videoHeight||480; canvas.width=w;canvas.height=h; }
+    window.addEventListener('resize',()=>{if(video?.videoWidth)resizeCanvas();});
+    function collectHands(hRes){ const out=[],lms=hRes?.landmarks||[],hd=hRes?.handednesses||[]; for(let i=0;i<lms.length;i++){const lm=lms[i],h=hd?.[i]?.[0]?.categoryName||null; out.push({lm,handedness:h});} return out; }
+    async function initModels(){ if(modelsReady)return; const r=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"); faceLandmarker=await FaceLandmarker.createFromOptions(r,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"},numFaces:2,runningMode:"VIDEO",outputFaceBlendshapes:false,outputFacialTransformationMatrixes:true}); handLandmarker=await HandLandmarker.createFromOptions(r,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task"},numHands:2,runningMode:"VIDEO"}); cocoSsdModel=await cocoSsd.load(); console.log('Models loaded.'); modelsReady=true; phoneReady=true; }
+    async function startCam(){ try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},audio:false}); video.srcObject=st; await new Promise(r=>{if(video.readyState>=1)r(); else video.onloadedmetadata=()=>r();}); await video.play(); resizeCanvas();}catch(e){console.error(e); showAlert('ข้อผิดพลาด', 'ไม่สามารถเปิดกล้องได้', 'error', 5000); btnCalib.disabled=false;throw e;}} // Use showAlert
+
+    // === GPS Speed Functions (เหมือนเดิม) ===
+    function watchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher) navigator.geolocation.clearWatch(geolocationWatcher); const o = { enableHighAccuracy: true, maximumAge: 0 }; geolocationWatcher = navigator.geolocation.watchPosition( (p) => { const s = p.coords.speed; speedKPH = (s || 0) * 3.6; currentCoords = { lat: p.coords.latitude, lon: p.coords.longitude, accuracy: p.coords.accuracy }; }, (e) => { console.warn('GPS Error:', e.message); currentCoords = null; }, o); }
+    function stopWatchSpeed() { /* ... (เหมือนเดิม) ... */ if(geolocationWatcher){navigator.geolocation.clearWatch(geolocationWatcher);geolocationWatcher=null;} speedKPH = 0; currentCoords = null; }
+
+    // === updateStatusIcons (โค้ดที่แก้ไขการจัดการ Popup/เสียง) ===
+    function updateStatusIcons(v){ 
+      const alertMessages = { eyeAlert:{m:'ตรวจพบการหลับตา',s:'กรุณาลืมตาขณะขับขี่ หากไม่ไหวให้จอดพัก'}, handsAlert:{m:'ปล่อยมือทั้งสองข้าง',s:'อันตราย! กรุณาควบคุมรถ'}, wheelAlert:{m:'ละมือจากพวงมาลัย',s:'กรุณาจับพวงมาลัยให้มั่นคง'}, phoneAlert:{m:'ใช้โทรศัพท์',s:'โปรดวางโทรศัพท์และตั้งใจขับรถ'}, yawnAlert:{m:'ตรวจพบการหาว',s:'ความง่วงเป็นสาเหตุของอุบัติเหตุ จอดพักสักครู่'}, pitchDown:{m:'ก้มหน้า',s:'โปรดมองตรงไปข้างหน้า'}, pitchUp:{m:'เงยหน้า',s:'โปรดมองถนนเพื่อความปลอดภัย'}, faceLost:{m:'ไม่พบใบหน้า',s:'กรุณาปรับตำแหน่งกล้องให้อยู่ในมุมที่เหมาะสม'}, yawLeft:{m:'หันซ้าย',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, yawRight:{m:'หันขวา',s:'โปรดให้ความสนใจกับเส้นทางด้านหน้า'}, takeBreak:{m:'!!! พักผ่อนด่วน !!!',s:'คะแนนความพร้อมของคุณหมดแล้ว จอดพักทันที'} }; 
+      const priority=['takeBreak','eyeAlert','handsAlert','wheelAlert','phoneAlert','pitchDown','pitchUp','yawnAlert','faceLost','yawLeft','yawRight']; 
+      const alerts=[]; 
+      let sub='', lvl='none'; 
+      
+      // การตรวจจับ Alert (เหมือนเดิม)
+      if(v.takeBreakAlert){alerts.push(alertMessages.takeBreak.m);lvl='error';} 
+      if(v.yawAlertText){const k=v.yawAlertText==='หันซ้าย'?'yawLeft':'yawRight';alerts.push(alertMessages[k].m);if(lvl==='none'||lvl==='success')lvl='warning';} 
+      if(v.pitchAlertText){const k=v.pitchAlertText==='ก้มหน้า'?'pitchDown':'pitchUp';alerts.push(alertMessages[k].m);if(lvl!=='error')lvl='error';} 
+      if(v.eyeAlert){alerts.push(alertMessages.eyeAlert.m);lvl='error';} 
+      if(v.handsAlert){alerts.push(alertMessages.handsAlert.m);lvl='error';} 
+      if(v.wheelAlert){alerts.push(alertMessages.wheelAlert.m);lvl='error';} 
+      if(v.phoneAlert){alerts.push(alertMessages.phoneAlert.m);lvl='error';} 
+      if(v.faceLost){alerts.push(alertMessages.faceLost.m);lvl='error';} 
+      if(v.yawnAlert){alerts.push(alertMessages.yawnAlert.m);if(lvl==='none')lvl='warning';} 
+
+      // Auto SOS Logic (เหมือนเดิม)
+      if (v.takeBreakAlert && !autoSosSent) { 
+        console.log("Score reached 0. Setting autoSosSent flag and attempting Auto SOS..."); 
+        autoSosSent = true; 
+        (async () => { 
+          const result = await sendSOSLogic(true); 
+          // เพิ่ม isSosAlertActive = true; 
+          if (result.success) { 
+            isSosAlertActive = true;
+            console.log("Auto SOS email potentially sent successfully."); 
+            if (alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) { alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)"; } else if (!alertSubTextEl.textContent) { alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติแล้ว)"; } 
+            if (!alertBox.classList.contains('show') || !alertTextEl.textContent.includes(alertMessages.takeBreak.m)) { showAlert(alertMessages.takeBreak.m, alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติแล้ว)", 'error', 0); } else { alertCard.className = 'card error'; if (!alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติแล้ว)")) { alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติแล้ว)"; } } 
+          } else { 
+            isSosAlertActive = true;
+            console.error("Auto SOS failed (GPS not ready or EmailJS error). Flag is set, won't retry."); 
+            if (currentCoords) { 
+              if(alertSubTextEl.textContent && !alertSubTextEl.textContent.includes("(ส่ง SOS อัตโนมัติล้มเหลว!)")) { alertSubTextEl.textContent += " (ส่ง SOS อัตโนมัติล้มเหลว!)"; } else if (!alertSubTextEl.textContent) { alertSubTextEl.textContent = "(ส่ง SOS อัตโนมัติล้มเหลว!)"; } 
+              if (!alertBox.classList.contains('show')) { showAlert(alertMessages.takeBreak.m, alertMessages.takeBreak.s + " (ส่ง SOS อัตโนมัติล้มเหลว!)", 'error', 0); } 
+            } 
+          } 
+        })(); 
+      } 
+      
+      const nonSosAlerts = alerts.filter(a => a !== 'ส่ง SOS สำเร็จ!' && a !== 'ส่ง SOS ล้มเหลว!'); 
+      
+      // === แก้ไขส่วนแสดง Alert ความเสี่ยง (เหมือนเดิม) ===
+      if (nonSosAlerts.length > 0) { 
+        for (const k of priority) { 
+          if (alertMessages[k] && nonSosAlerts.includes(alertMessages[k].m)) { 
+            sub = alertMessages[k].s; 
+            if (k === 'takeBreak' || k === 'eyeAlert' || k === 'handsAlert' || k === 'wheelAlert' || k === 'phoneAlert' || k === 'pitchDown' || k === 'pitchUp' || k === 'faceLost') { lvl = 'error'; } 
+            else if (k === 'yawLeft' || k === 'yawRight') { if (lvl !== 'error') lvl = 'warning'; } 
+            else if (k === 'yawnAlert') { if (lvl === 'none') lvl = 'warning'; } 
+            break; 
+          } 
+        } 
+        
+        let currentTitle = nonSosAlerts.join(' / '); 
+        let currentSubText = sub; 
+        if (v.takeBreakAlert && autoSosSent && !currentSubText.includes("ส่ง SOS อัตโนมัติ")) { currentSubText += " (ส่ง SOS อัตโนมัติแล้ว)"; } 
+        
+        if (!isSosAlertActive) {
+            showAlert(currentTitle, currentSubText, lvl, 0); 
+        } 
+
+      // === แก้ไขส่วนซ่อน Alert เมื่อไม่มีความเสี่ยง (เหมือนเดิม) ===
+      } else if (alertBox.classList.contains('show') && !isSosAlertActive) { 
+        if (alertTimeoutId) { 
+          clearTimeout(alertTimeoutId); 
+          alertTimeoutId = null; 
+        } 
+        alertBox.classList.remove('show'); 
+      } 
+      // ===========================================
+
+      // Icon colors (เหมือนเดิม)
+      const r='#dc2626',y='#f59e0b',g='#10b981',d=''; 
+      eyesStatusIcon.style.backgroundColor=(v.eyeAlert||(v.pitchAlertText&&lvl==='error')||v.takeBreakAlert)?r:(v.yawAlertText?y:(v.yawnAlert?g:d)); 
+      phoneStatusIcon.style.backgroundColor=(v.phoneAlert||v.takeBreakAlert)?r:d; 
+      handsStatusIcon.style.backgroundColor=(v.handsAlert||v.takeBreakAlert)?r:d; 
+      wheelStatusIcon.style.backgroundColor=(v.wheelAlert||v.takeBreakAlert)?r:d; 
+
+      // 3. แก้ไข Sound Logic: แทนที่ sndLook ด้วยเสียงเฉพาะทิศทาง
+      const soundP=[ 
+        {f:v.eyeAlert,i:'EYES',e:sndEyes},
+        {f:v.phoneAlert,i:'PHONE',e:sndPhone},
+        {f:v.handsAlert,i:'WHEEL',e:sndWheel},
+        {f:v.wheelAlert,i:'WHEEL',e:sndWheel},
+        // แทนที่ sndLook:
+        {f:v.pitchAlertText==='ก้มหน้า',i:'DOWN',e:sndDown},
+        {f:v.pitchAlertText==='เงยหน้า',i:'UP',e:sndUp},
+        {f:v.yawAlertText==='หันซ้าย',i:'LEFT',e:sndLeft},
+        {f:v.yawAlertText==='หันขวา',i:'RIGHT',e:sndRight},
+        {f:v.yawnAlert,i:'YAWN',e:sndYawn} 
+      ]; 
+
+      if (v.takeBreakAlert) { 
+        stopAllSoundsNow('SCORE'); 
+        if (!hasPlayedScoreSound) { 
+          sndScore.loop = true; sndScore.volume = 1.0; sndScore.play().catch(()=>{}); 
+          hasPlayedScoreSound = true; 
+          if (scoreSoundTimeout) clearTimeout(scoreSoundTimeout); 
+          scoreSoundTimeout = setTimeout(() => { stopAlertSound('SCORE', sndScore); }, 30000); 
+        } 
+        currentAudioAlert = 'SCORE'; 
+      } else { 
+        let sPlay = null; 
+        for(const item of soundP) if(item.f) { sPlay=item; break; } 
+        if(sPlay) { 
+          playAlertSound(sPlay.i, sPlay.e); 
+        } else if(currentAudioAlert && currentAudioAlert !== 'SCORE') { 
+          // แก้ไขการหยุดเสียงให้ครอบคลุมเสียงใหม่
+          const elToStop={'EYES':sndEyes,'YAWN':sndYawn,'PHONE':sndPhone,'WHEEL':sndWheel,
+                          'DOWN':sndDown,'UP':sndUp,'LEFT':sndLeft,'RIGHT':sndRight}[currentAudioAlert]; 
+          if(elToStop) stopAlertSound(currentAudioAlert, elToStop); 
+          currentAudioAlert = null; 
+        } 
+      } 
+      
+      scoreDisplay.textContent=Math.round(driverScore); 
+      speedDisplay.textContent=Math.round(speedKPH); 
+    }
+
+    const rVFC = video.requestVideoFrameCallback?.bind(video);
+    function scheduleNext(fn){ if(rVFC)rVFC(()=>fn()); else requestAnimationFrame(fn); }
+    const getFPS=()=>30;
+
+    // === loop Function (เหมือนเดิม) ===
+    async function loop(){ if(!isRunning)return; const now=performance.now(); const budget=1000/getFPS(); if(now-lastTick<budget)return scheduleNext(loop); lastTick=now; if(isBusy)return scheduleNext(loop); isBusy=true; if (isTakingBreakAlert) { updateStatusIcons({ eyeAlert:false, yawnAlert:false, handsAlert:false, phoneAlert:false, wheelAlert:false, faceLost:false, yawAlertText:'', pitchAlertText:'', takeBreakAlert:true }); /* เอา btnTogglePose.disabled ออก */ if (!btnCalib.disabled) btnCalib.disabled = true; isBusy = false; scheduleNext(loop); return; } try{ const resF=faceLandmarker?.detectForVideo?.(video,now); const resH=handLandmarker?.detectForVideo?.(video,now); let dFace=null; if(resF?.faceLandmarks?.length>0)dFace=resF.faceLandmarks.length===1?resF.faceLandmarks[0]:resF.faceLandmarks.reduce((l,c)=>{const la=Math.abs(l[454].x-l[234].x)*Math.abs(l[152].y-l[10].y),ca=Math.abs(c[454].x-c[234].x)*Math.abs(c[152].y-c[10].y);return ca>la?c:l;}); const face=dFace; const hands=collectHands(resH); let eAl=false,yAl=false,hAl=false,pAl=false,ph=false,wAl=false,fLs=false,yTxt='',pTxt=''; let rdScr=false; ctx.clearRect(0,0,canvas.width,canvas.height); if(face){ const m4=resF?.facialTransformationMatrixes?.[face===resF.faceLandmarks[0]?0:1]; let pose=poseFromMatrixAuto(m4)||poseSimple(face); if(pose){ pitchEMA=ema(pitchEMA,pose.pitch); yawEMA=ema(yawEMA,pose.yaw); const cP=(pitchEMA-pitchOffset)*poseGain*pitchGain,cY=(yawEMA-yawOffset)*poseGain*yawGain; const fP=-cP,fY=cY; /* ลบส่วน if(showPose){...} ออก */ if(fY>THRESH.YAW_LEFT){if(yawLeftStart===null)yawLeftStart=now;yawRightStart=null;hasAlertedYawRight=false;if((now-yawLeftStart)/1000>THRESH.YAW_ALERT_SEC){yTxt='หันซ้าย';if(!hasAlertedYawLeft){rdScr=true;hasAlertedYawLeft=true;}}} else if(fY<THRESH.YAW_RIGHT){if(yawRightStart===null)yawRightStart=now;yawLeftStart=null;hasAlertedYawLeft=false;if((now-yawRightStart)/1000>THRESH.YAW_ALERT_SEC){yTxt='หันขวา';if(!hasAlertedYawRight){rdScr=true;hasAlertedYawRight=true;}}} else{yawLeftStart=null;hasAlertedYawLeft=false;yawRightStart=null;hasAlertedYawRight=false;} if(fP>THRESH.PITCH_DOWN){if(pitchDownStart===null)pitchDownStart=now;if((now-pitchDownStart)/1000>THRESH.PITCH_DOWN_SEC){pTxt='ก้มหน้า';if(!hasAlertedPitchDown){rdScr=true;hasAlertedPitchDown=true;}}} else if(fP<THRESH.PITCH_UP){pTxt='เงยหน้า';pitchDownStart=null;hasAlertedPitchDown=false; if(!hasAlertedPitchDown){rdScr=true;hasAlertedPitchDown=true;}} else{pitchDownStart=null;hasAlertedPitchDown=false;} } const EAR=ear(face,EYE_L)*0.5+ear(face,EYE_R)*0.5; const MAR=marSimple(face); if(EAR<THRESH.EYE_CLOSED){isEyeClosed=true;if(eyeStart==null)eyeStart=now;else if((now-eyeStart)/1000>THRESH.EYE_CLOSED_SEC){eAl=true;if(!hasAlertedEyes){rdScr=true;hasAlertedEyes=true;}}} else{ if(isEyeClosed && isTakingBreakAlert){} else { isEyeClosed=false; } eyeStart=null;hasAlertedEyes=false;} if(MAR>THRESH.YAWN){if(yawnStart==null)yawnStart=now;else if((now-yawnStart)/1000>THRESH.YAWN_SEC){yAl=true;if(!hasAlertedYawn){rdScr=true;hasAlertedYawn=true;}}} else{yawnStart=null;hasAlertedYawn=false;} faceLastSeen=now/1000; }else{const t=now/1000;if(!faceLastSeen)faceLastSeen=t;fLs=(t-faceLastSeen>THRESH.FACE_LOST_ALERT_SEC);if(fLs)rdScr=true;} const hOnSc=resH?.landmarks?.length||0; let bHUp=false; if(hOnSc>=2&&face){const nY=face[1].y;const lH=hands.find(h=>h.handedness==='Left'),rH=hands.find(h=>h.handedness==='Right');if(lH&&rH&&lH.lm[9].y<nY&&rH.lm[9].y<nY)bHUp=true;} if(bHUp){if(handsStart===null)handsStart=now;if((now-handsStart)/1000>THRESH.BOTH_HANDS_UP_SEC){hAl=true;if(!hasAlertedHands){rdScr=true;hasAlertedHands=true;}}}else{handsStart=null;hasAlertedHands=false;} let pBoxes=[]; if(phoneReady&&cocoSsdModel){const p=await cocoSsdModel.detect(video);for(const i of p)if(i.class==='cell phone'&&i.score>=THRESH.PHONE_SCORE){const[x,y,w,h]=i.bbox;pBoxes.push({xMin:x,yMin:y,xMax:x+w,yMax:y+h,s:i.score});}} let pDetFrame=false; if(pBoxes.length&&resH?.landmarks?.length){for(const b of pBoxes){const pc={x:(b.xMin+b.xMax)/2/video.videoWidth,y:(b.yMin+b.yMax)/2/video.videoHeight};for(const hLm of resH.landmarks){const wp=hLm[0];if(getDistance(pc,wp)<THRESH.PHONE_HAND_DISTANCE){pDetFrame=true;break;}}if(pDetFrame)break;}} if(pDetFrame)phoneLastSeenTime=now; if(phoneLastSeenTime!==null&&(now-phoneLastSeenTime)/1000<THRESH.PHONE_LOST_GRACE_SEC){ph=true;if(!hasAlertedPhone){rdScr=true;hasAlertedPhone=true;}}else{ph=false;hasAlertedPhone=false;phoneLastSeenTime=null;} pAl=ph; if(!hAl&&!pAl){if(hOnSc===0){if(wheelOffStart===null)wheelOffStart=now;if((now-wheelOffStart)/1000>THRESH.WHEEL_OFF_ALERT_SEC){wAl=true;if(!hasAlertedWheel){rdScr=true;hasAlertedWheel=true;}}}else{wheelOffStart=null;hasAlertedWheel=false;}}else{wheelOffStart=null;hasAlertedWheel=false;} if(driverScore<=0)isTakingBreakAlert=true; if(rdScr&&(now-scoreLastReduced>THRESH.SCORE_REDUCE_COOLDOWN)){driverScore=Math.max(0,driverScore-THRESH.SCORE_REDUCE_AMOUNT);scoreLastReduced=now;} const isSafe=!eAl&&!yAl&&!hAl&&!pAl&&!wAl&&!fLs&&!yTxt&&!pTxt; if(isSafe&&face&&(now-scoreLastRegen>THRESH.SCORE_REGEN_COOLDOWN)){if(driverScore<100)driverScore=Math.min(100,driverScore+THRESH.SCORE_REGEN_AMOUNT); if(driverScore>=100){isTakingBreakAlert=false; autoSosSent=false;} scoreLastRegen=now;} updateStatusIcons({eyeAlert:eAl,yawnAlert:yAl,handsAlert:hAl,phoneAlert:pAl,wheelAlert:wAl,faceLost:fLs,yawAlertText:yTxt,pitchAlertText:pTxt,takeBreakAlert:isTakingBreakAlert}); }catch(e){console.error('loop error',e);}finally{isBusy=false;scheduleNext(loop);} }
+
+    // === Event Listeners (เหมือนเดิม) ===
+    btnSaveEmail.addEventListener('click', () => {
+      const email = sosEmailInput.value;
+      if (email && email.includes('@') && email.includes('.')) {
+        sosEmail = email;
+        setupModal.style.display = 'none';
+        btnCalib.disabled = false;
+        // ลบ: btnTogglePose.disabled = false;
+        btnSos.disabled = false;
+        watchSpeed();
+      } else {
+        showAlert('ข้อผิดพลาด', 'กรุณากรอกอีเมลให้ถูกต้อง (เช่น example@email.com)', 'error', 3000);
+      }
+    });
+
+    // === โค้ดที่ได้รับการแก้ไข: btnSos Event Listener (เหมือนเดิม) ===
+    btnSos.addEventListener('click', async () => {
+        btnSos.disabled = true;
+        btnSos.textContent = 'กำลังส่ง...';
+        
+        // 1. หยุดเสียงแจ้งเตือนทั้งหมดทันที
+        stopAllSoundsNow(); 
+        
+        // 2. ล้าง Alert เดิมและซ่อน Alert Box 
+        // ไม่ต้องล้าง alertTimeoutId ตรงนี้ เพราะ showAlert จะทำเอง
+        if (alertBox.classList.contains('show')) {
+            alertBox.classList.remove('show');
+        }
+        
+        const result = await sendSOSLogic(false);
+
+        let duration = 3000;
+        if(result.success){
+            showAlert('ส่ง SOS สำเร็จ!', `ส่งแจ้งเตือนไปยัง ${sosEmail} แล้ว กรุณาขับขี่ปลอดภัยด้วยนะครับ`, 'success', duration);
+            sndSos.play().catch(()=>{});
+        } else {
+            duration = 5000;
+            let errorSubtext = result.error ? `${result.error}` : 'กรุณาตรวจสอบ Console';
+            if (result.error === "ยังไม่มีข้อมูล GPS") {
+                errorSubtext = "ยังไม่มีข้อมูล GPS ล่าสุด กรุณาลองอีกครั้ง";
+            } else if (result.error && typeof result.error === 'object') {
+                errorSubtext = `Error: ${result.error.text || JSON.stringify(result.error)}`;
+            }
+            showAlert('ส่ง SOS ล้มเหลว!', errorSubtext, 'error', duration);
+            sndFailsos.play().catch(()=>{});
+        }
+        
+        // 3. (ลบ setTimeout ออก) เพราะการจัดการ Alert SOS ใน showAlert จะทำการบังคับให้ loop() ทำงานต่อ
+        // isSosAlertActive ถูกตั้งค่าเป็น true ใน showAlert และจะถูกรีเซ็ตเป็น false 
+        // พร้อมเรียก loop() เมื่อหมดเวลา ทำให้ Alert ความเสี่ยงแสดงได้ทันที
+
+        btnSos.disabled = false;
+        btnSos.textContent = 'SOS';
+    });
+    // =================================================
+
+    // --- แก้ไข: Listener ปุ่ม Calibrate (เพิ่มเสียง) ---
+    btnCalib.addEventListener('click', async ()=>{
+      btnCalib.disabled = true;
+      btnCalib.textContent = 'Calibrating...';
+      if (alertTimeoutId) clearTimeout(alertTimeoutId);
+      alertBox.classList.remove('show');
+
+      try{
+        if(!video.srcObject)await startCam();
+        if(!modelsReady)await initModels();
+        const d=performance.now()+2000;
+        let got=false,lastP=null;
+        while(performance.now()<d){ /* ... find face ... */ const now=performance.now(); const resF=faceLandmarker?.detectForVideo?.(video,now); let cFace=resF?.faceLandmarks?.[0]; if(cFace){ const m4=resF?.facialTransformationMatrixes?.[0]; const pose=poseFromMatrixAuto(m4)||poseSimple(cFace); if(pose&&Number.isFinite(pose.pitch)&&Number.isFinite(pose.yaw)){ lastP=pose; got=true; break; } } await new Promise(r=>requestAnimationFrame(r)); }
+
+        if(!got){
+          showAlert('ไม่พบหน้า', 'ขยับให้อยู่กลางภาพ/เพิ่มแสง', 'error', 5000);
+        } else {
+          pitchOffset=lastP.pitch; yawOffset=lastP.yaw;
+          calibrated=true;
+          if (!isRunning) btnToggle.disabled = false;
+          canvas.style.outline='3px solid #10b981';
+          setTimeout(()=>{canvas.style.outline='none';},520);
+          showAlert('Calibrated!', 'พร้อมเริ่มใช้งาน', 'success', 2200);
+          sndCali.play().catch(()=>{}); // <-- เล่นเสียง Calibrate สำเร็จ
+        }
+      } catch(e) {
+          console.error("Calibration failed:", e);
+          showAlert('Calibrate ล้มเหลว', 'เกิดข้อผิดพลาด กรุณาลองใหม่', 'error', 5000);
+      } finally {
+        btnCalib.disabled = false;
+        btnCalib.textContent = 'Calibrate';
+      }
+    });
+
+    // --- แก้ไข: Listener ปุ่ม Start/Stop (เพิ่ม preload เสียงใหม่) ---
+    btnToggle.addEventListener('click', async ()=>{
+      if(!isRunning){
+        // เพิ่ม sndDown, sndUp, sndRight, sndLeft ใน preload list
+        [sndEyes,sndYawn,sndPhone,sndWheel,sndLook,sndScore, sndSos, sndFailsos, sndCali, sndDown, sndUp, sndRight, sndLeft].forEach(a=>{a.play().then(()=>{a.pause();a.currentTime=0;}).catch(()=>{});});
+        if (scoreSoundTimeout) { clearTimeout(scoreSoundTimeout); scoreSoundTimeout = null; }
+        try{
+          if(!video.srcObject)await startCam();
+          if(!modelsReady)await initModels();
+          isRunning=true;
+          btnToggle.textContent='Stop';
+          // ลบ: btnTogglePose.disabled = true;
+          driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
+          hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
+          scheduleNext(loop);
+        }catch(e){
+          console.error(e); showAlert('ข้อผิดพลาด', 'เริ่มระบบไม่สำเร็จ: อนุญาตกล้อง/อินเทอร์เน็ต', 'error', 5000);
+          // ลบ: btnTogglePose.disabled = false;
+          btnCalib.disabled=false; btnSos.disabled = false;
+        }
+      } else {
+        isRunning=false;
+        btnToggle.textContent='Start';
+        btnToggle.disabled = true;
+        calibrated = false;
+        // ลบ: if(showPose){...}
+        stopWatchSpeed();
+        speedDisplay.textContent=Math.round(speedKPH);
+        stopAllSoundsNow();
+        isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
+        // ลบ: btnTogglePose.disabled = false;
+        btnCalib.disabled = false; btnSos.disabled = false;
+        const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        showAlert('หยุดการตรวจจับ', '', 'error', 2200);
+      }
+    });
+
+    // ลบ: Event Listener ของ btnTogglePose ทั้งหมด
+
+    // === Initialisation (เหมือนเดิม) ===
+    (async ()=>{
+      try{
+        initializeEmailJS();
+        await startCam();
+        await initModels();
+      } catch {
+        setupModal.style.display = 'none';
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){const b=document.getElementById('btnTheme'),s=document.getElementById('themeIconSun'),m=document.getElementById('themeIconMoon'),h=document.documentElement;function set(t){if(t==='dark'){h.classList.add('dark');s.classList.remove('hidden');s.classList.add('block');m.classList.remove('block');m.classList.add('hidden');localStorage.setItem('theme','dark');}else{h.classList.remove('dark');s.classList.remove('block');s.classList.add('hidden');m.classList.remove('hidden');m.classList.add('block');localStorage.setItem('theme','light');}}const saved=localStorage.getItem('theme');if(saved==='light')set('light');else set('dark');b.addEventListener('click',()=>{if(h.classList.contains('dark'))set('light');else set('dark');});})();
+  </script>
+</body>
+</html>
