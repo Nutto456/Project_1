@@ -1,11 +1,9 @@
 // server.js
 const { WebSocketServer, WebSocket } = require('ws');
 
-// เราจะใช้ Port ที่ Render กำหนดให้ หรือ 8080 ถ้าเทสเครื่องตัวเอง
 const PORT = process.env.PORT || 8080;
 const wss = new WebSocketServer({ port: PORT });
 
-// เก็บการเชื่อมต่อ 2 คน
 let driverSocket = null;
 let monitorSocket = null;
 
@@ -14,53 +12,101 @@ console.log(`Signaling server started on port ${PORT}...`);
 wss.on('connection', (ws) => {
   console.log('Client connected...');
 
-  // 1. ตรรกะจับคู่ที่ง่ายที่สุด
-  if (driverSocket === null) {
-    driverSocket = ws;
-    console.log('Driver connected.');
-    ws.send(JSON.stringify({ type: 'info', message: 'You are the driver' }));
-  } else if (monitorSocket === null) {
-    monitorSocket = ws;
-    console.log('Monitor connected.');
-    ws.send(JSON.stringify({ type: 'info', message: 'You are the monitor' }));
-  } else {
-    // ถ้ามีคนพยายามต่อเป็นคนที่ 3
-    console.log('Connection rejected: Room is full.');
-    ws.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
-    ws.close();
-    return;
+  // --- *** ลบ Logic การกำหนดบทบาทเดิมออก *** ---
+  // if (driverSocket === null) { ... } else if (...) ...
+
+  // --- *** เพิ่ม Logic ใหม่: รอ Client แนะนำตัว *** ---
+  ws.once('message', (message) => { // ใช้ 'once' เพื่อรอข้อความแรกเท่านั้น
+    try {
+      const data = JSON.parse(message);
+
+      // 1. ตรวจสอบข้อความแนะนำตัว
+      if (data.type === 'identify' && data.role === 'driver') {
+        if (driverSocket === null || driverSocket.readyState !== WebSocket.OPEN) {
+          driverSocket = ws;
+          console.log('Driver identified and connected.');
+          ws.send(JSON.stringify({ type: 'info', message: 'You are the driver' }));
+          // เริ่ม lắng ฟัง ข้อความอื่นๆ หลังจากระบุตัวตนแล้ว
+          setupMessageListener(ws);
+        } else {
+          console.log('Driver connection rejected: Driver already connected.');
+          ws.send(JSON.stringify({ type: 'error', message: 'Driver already connected' }));
+          ws.close();
+        }
+      } else if (data.type === 'identify' && data.role === 'monitor') {
+        if (monitorSocket === null || monitorSocket.readyState !== WebSocket.OPEN) {
+          monitorSocket = ws;
+          console.log('Monitor identified and connected.');
+          ws.send(JSON.stringify({ type: 'info', message: 'You are the monitor' }));
+          // เริ่ม lắng ฟัง ข้อความอื่นๆ
+          setupMessageListener(ws);
+        } else {
+          console.log('Monitor connection rejected: Monitor already connected.');
+          ws.send(JSON.stringify({ type: 'error', message: 'Monitor already connected' }));
+          ws.close();
+        }
+      } else {
+        // ถ้าข้อความแรกไม่ใช่การระบุตัวตนที่ถูกต้อง
+        console.log('Invalid identification message received.');
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid identification' }));
+        ws.close();
+      }
+    } catch (e) {
+      console.error('Failed to parse identification message:', e);
+      ws.close();
+    }
+  });
+  // --- *** จบ Logic ใหม่ *** ---
+
+
+  // --- *** แยก Logic การส่งข้อความปกติออกมาเป็นฟังก์ชัน *** ---
+  function setupMessageListener(socket) {
+    socket.on('message', (message) => {
+        // ตรวจสอบว่าข้อความมาจาก Client ที่ระบุตัวตนแล้วหรือยัง
+        // (จริงๆ ไม่ต้องเช็กก็ได้ เพราะเรา setup listener หลังระบุตัวตนแล้ว)
+        if (socket !== driverSocket && socket !== monitorSocket) return;
+
+        try {
+            const data = JSON.parse(message);
+
+            // ข้ามข้อความ identify ที่อาจส่งซ้ำ
+            if (data.type === 'identify') return;
+
+            // ส่งต่อไปยังอีกฝั่ง
+            if (socket === driverSocket) {
+                if (monitorSocket && monitorSocket.readyState === WebSocket.OPEN) {
+                    // แปลง message Buffer เป็น string ก่อนส่งต่อ
+                    monitorSocket.send(message.toString());
+                }
+            } else if (socket === monitorSocket) {
+                if (driverSocket && driverSocket.readyState === WebSocket.OPEN) {
+                   // แปลง message Buffer เป็น string ก่อนส่งต่อ
+                    driverSocket.send(message.toString());
+                }
+            }
+        } catch(e) {
+            console.error("Failed to parse or forward message:", e);
+        }
+    });
+
+    // ตรรกะเมื่อหลุด (เหมือนเดิม แต่ใช้ socket แทน ws)
+    socket.on('close', () => {
+      if (socket === driverSocket) {
+        driverSocket = null;
+        console.log('Driver disconnected.');
+      } else if (socket === monitorSocket) {
+        monitorSocket = null;
+        console.log('Monitor disconnected.');
+      }
+    });
+
+    socket.on('error', (err) => {
+      console.error('Socket error:', err);
+      // อาจจะเพิ่มการเคลียร์ socket ที่นี่ด้วยก็ได้
+      if (socket === driverSocket) driverSocket = null;
+      if (socket === monitorSocket) monitorSocket = null;
+    });
   }
+  // --- *** จบฟังก์ชัน setupMessageListener *** ---
 
-  // 2. ตรรกะ "สะพาน" ส่งข้อความ
-  ws.on('message', (message) => {
-    // แปลงข้อความกลับเป็น Object
-    const data = JSON.parse(message);
-
-    if (ws === driverSocket) {
-      // ถ้ามาจาก Driver -> ส่งไปให้ Monitor
-      if (monitorSocket && monitorSocket.readyState === WebSocket.OPEN) {
-        monitorSocket.send(JSON.stringify(data));
-      }
-    } else if (ws === monitorSocket) {
-      // ถ้ามาจาก Monitor -> ส่งไปให้ Driver
-      if (driverSocket && driverSocket.readyState === WebSocket.OPEN) {
-        driverSocket.send(JSON.stringify(data));
-      }
-    }
-  });
-
-  // 3. ตรรกะเมื่อมีคนหลุด
-  ws.on('close', () => {
-    if (ws === driverSocket) {
-      driverSocket = null;
-      console.log('Driver disconnected.');
-    } else if (ws === monitorSocket) {
-      monitorSocket = null;
-      console.log('Monitor disconnected.');
-    }
-  });
-
-  ws.on('error', (err) => {
-    console.error('Socket error:', err);
-  });
-});
+}); // จบ wss.on('connection')

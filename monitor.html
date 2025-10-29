@@ -197,72 +197,68 @@
 
       ws.onopen = () => {
         console.log('Connected to Signaling Server as Monitor');
+        // === **** (เพิ่ม) ส่ง Identify **** ===
+        ws.send(JSON.stringify({ type: 'identify', role: 'monitor' }));
+        // ===================================
         updateStatus(true, 'Server Connected'); // เชื่อมต่อ Server สำเร็จ
         createPeerConnection();
       };
 
       ws.onmessage = async (message) => {
         const data = JSON.parse(message.data);
-        switch (data.type) {
-          case 'offer':
-            if (!pc) createPeerConnection();
-            await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            ws.send(JSON.stringify({ type: 'answer', payload: answer }));
-            break;
-          case 'candidate':
-            if (pc && data.payload) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
-              catch (e) { console.error('Error adding ICE candidate', e); }
-            }
-            break;
-          case 'info':
-            console.log('Server Info:', data.message);
-            break;
+         // *** (แก้ไข) เช็ก type info เพื่อแสดง log ***
+        if (data.type === 'info') {
+           console.log('Server Info:', data.message);
+        } else {
+           // จัดการข้อความ WebRTC และ statusUpdate
+           switch (data.type) {
+              case 'offer':
+                if (!pc) createPeerConnection();
+                await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                ws.send(JSON.stringify({ type: 'answer', payload: answer }));
+                break;
+              case 'candidate':
+                if (pc && data.payload) {
+                  try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
+                  catch (e) { console.error('Error adding ICE candidate', e); }
+                }
+                break;
+              // ไม่ต้องมี case 'info' ที่นี่แล้ว
 
-          // **** (เพิ่ม) รับข้อมูล statusUpdate ****
-          case 'statusUpdate':
-            const payload = data.payload;
+              case 'statusUpdate':
+                // ... (โค้ด statusUpdate เหมือนเดิม) ...
+                const payload = data.payload;
+                infoScoreEl.textContent = payload.score ?? '--';
+                infoSpeedEl.textContent = payload.speed ?? '--';
+                const alerts = payload.alerts;
+                let alertText = 'NORMAL';
+                const activeAlerts = [];
+                if (alerts.takeBreak) activeAlerts.push('พักผ่อนด่วน!');
+                if (alerts.eyeAlert) activeAlerts.push('หลับตา');
+                // ... (เช็ก alert อื่นๆ) ...
+                if (alerts.handsAlert) activeAlerts.push('ปล่อยมือสองข้าง');
+                if (alerts.wheelAlert) activeAlerts.push('ละมือจากพวงมาลัย');
+                if (alerts.phoneAlert) activeAlerts.push('ใช้โทรศัพท์');
+                if (alerts.pitchText === 'ก้มหน้า') activeAlerts.push('ก้มหน้า');
+                if (alerts.pitchText === 'เงยหน้า') activeAlerts.push('เงยหน้า');
+                if (alerts.yawnAlert) activeAlerts.push('หาว');
+                if (alerts.faceLost) activeAlerts.push('ไม่พบใบหน้า');
+                if (alerts.yawText === 'หันซ้าย') activeAlerts.push('หันซ้าย');
+                if (alerts.yawText === 'หันขวา') activeAlerts.push('หันขวา');
 
-            // 1. อัปเดตคะแนนและความเร็ว
-            infoScoreEl.textContent = payload.score ?? '--';
-            infoSpeedEl.textContent = payload.speed ?? '--';
-
-            // 2. อัปเดตสถานะ Alert
-            const alerts = payload.alerts;
-            let alertText = 'NORMAL'; // ค่าเริ่มต้น
-            const activeAlerts = []; // เก็บ Alert ที่เกิดขึ้นจริง
-
-            // แปลงค่า boolean/text เป็นข้อความ Alert
-            if (alerts.takeBreak) activeAlerts.push('พักผ่อนด่วน!');
-            if (alerts.eyeAlert) activeAlerts.push('หลับตา');
-            if (alerts.handsAlert) activeAlerts.push('ปล่อยมือสองข้าง');
-            if (alerts.wheelAlert) activeAlerts.push('ละมือจากพวงมาลัย');
-            if (alerts.phoneAlert) activeAlerts.push('ใช้โทรศัพท์');
-            if (alerts.pitchText === 'ก้มหน้า') activeAlerts.push('ก้มหน้า');
-            if (alerts.pitchText === 'เงยหน้า') activeAlerts.push('เงยหน้า');
-            if (alerts.yawnAlert) activeAlerts.push('หาว');
-            if (alerts.faceLost) activeAlerts.push('ไม่พบใบหน้า');
-            if (alerts.yawText === 'หันซ้าย') activeAlerts.push('หันซ้าย');
-            if (alerts.yawText === 'หันขวา') activeAlerts.push('หันขวา');
-
-            // 3. แสดงผล Alert
-            if (activeAlerts.length > 0) {
-                alertText = activeAlerts.join(' / '); // รวม Alert ทั้งหมด
-                // เปลี่ยนสีพื้นหลัง/ตัวหนังสือของ infoAlertsEl เป็นสีแดง/ส้ม
-                infoAlertsEl.textContent = alertText;
-                // ใช้ Tailwind classes โดยตรง
-                infoAlertsEl.className = 'text-red-400 font-semibold px-2 py-1 rounded bg-red-900/50 text-base animate-pulse';
-            } else {
-                // ถ้าไม่มี Alert ให้กลับเป็นสถานะ Normal
-                infoAlertsEl.textContent = alertText;
-                infoAlertsEl.className = 'text-green-400 font-semibold px-2 py-1 rounded bg-green-900/50 text-base';
-            }
-            break;
-          // **** จบ Case statusUpdate ****
-
-        } // จบ switch
+                if (activeAlerts.length > 0) {
+                    alertText = activeAlerts.join(' / ');
+                    infoAlertsEl.textContent = alertText;
+                    infoAlertsEl.className = 'text-red-400 font-semibold px-2 py-1 rounded bg-red-900/50 text-base animate-pulse';
+                } else {
+                    infoAlertsEl.textContent = alertText;
+                    infoAlertsEl.className = 'text-green-400 font-semibold px-2 py-1 rounded bg-green-900/50 text-base';
+                }
+                break;
+            } // จบ switch
+        } // จบ else
       }; // จบ onmessage
 
       ws.onclose = () => {

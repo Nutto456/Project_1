@@ -20,7 +20,7 @@
     src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
-    /* ... (CSS Styles ทั้งหมดเหมือนเดิม) ... */
+    /* ... (CSS Styles are the same as before) ... */
      :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
     .video-wrap { position: relative; width: 100%; max-width: 560px; aspect-ratio: 3/4; }
@@ -789,35 +789,42 @@
 
         ws.onopen = () => {
           console.log('Connected to Signaling Server as Driver');
+          // === **** (เพิ่ม) ส่ง Identify **** ===
+          ws.send(JSON.stringify({ type: 'identify', role: 'driver' }));
+          // ===================================
           resolve();
         };
 
         ws.onmessage = async (message) => {
           const data = JSON.parse(message.data);
-          switch (data.type) {
-            case 'answer':
-              if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
-              break;
-            case 'candidate':
-              if (pc && data.payload) {
-                 try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
-                 catch (e) { console.error('Error adding received ICE candidate', e); }
-              }
-              break;
-            case 'info':
-              console.log('Server Info:', data.message);
-              break;
+          // *** (แก้ไข) เช็ก type info เพื่อแสดง log ***
+          if (data.type === 'info') {
+             console.log('Server Info:', data.message);
+          } else {
+             // จัดการข้อความ WebRTC อื่นๆ (answer, candidate)
+             switch (data.type) {
+                case 'answer':
+                  if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+                  break;
+                case 'candidate':
+                  if (pc && data.payload) {
+                     try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
+                     catch (e) { console.error('Error adding received ICE candidate', e); }
+                  }
+                  break;
+                // ไม่ต้องมี case 'info' ที่นี่แล้ว
+             }
           }
         };
 
         ws.onclose = () => {
-          console.log('Disconnected from server.');
+          console.log('ws.onclose triggered. Current isSharing:', isSharing);
           if (isSharing) stopSharing();
           ws = null;
         };
 
         ws.onerror = (err) => {
-          console.error('WebSocket Error:', err);
+          console.error('ws.onerror triggered:', err);
           stopSharing();
           reject(err);
         };
