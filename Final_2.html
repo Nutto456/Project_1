@@ -789,6 +789,9 @@
 
         ws.onopen = () => {
           console.log('Connected to Signaling Server as Driver');
+
+          ws.send(JSON.stringify({ type: 'identify', role: 'driver' }));
+
           resolve();
         };
 
