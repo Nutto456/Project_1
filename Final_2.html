@@ -72,7 +72,7 @@
     .alert-popup .card.success { background-color: #10b981; border: none; }
     .alert-popup .card.error { background-color: #dc2626; border: none; }
     .alert-popup .card.warning { background-color: #f59e0b; border: none; }
-    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.warning h2, .alert-popup .card.success p, .alert-popup .card.error p, .alert-popup .card.warning p { color: white; opacity: 1; }
+    .alert-popup .card.success h2, .alert-popup .card.error h2, .alert-popup .card.error p, .alert-popup .card.warning h2, .alert-popup .card.warning p { color: white; opacity: 1; }
     .alert-popup .card.success p#alertSubText, .alert-popup .card.error p#alertSubText, .alert-popup .card.warning p#alertSubText { opacity: 0.9; }
     .alert-popup .card.success p:last-child, .alert-popup .card.error p:last-child, .alert-popup .card.warning p:last-child { color: white; opacity: 0.85; font-size: 0.875rem; margin-top: 0.5rem; }
 
@@ -171,7 +171,8 @@
         <button id="btnCalib" class="px-4 py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg flex-1 disabled:bg-indigo-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Calibrate</button>
         <button id="btnToggle" class="px-4 py-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg flex-1 disabled:bg-blue-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Start</button>
 
-        <button id="btnShare" class="px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 font-semibold shadow-lg flex-1 disabled:bg-green-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Share Audio</button> <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
+        <button id="btnShare" class="px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 font-semibold shadow-lg flex-1 disabled:bg-green-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Share Audio</button>
+        <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
     </section>
     </main>
 
@@ -344,7 +345,7 @@
       try{
         const st=await navigator.mediaDevices.getUserMedia({
           video:{facingMode:"user",width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30}},
-          audio: true // <--- ตรวจสอบว่ามีบรรทัดนี้แล้ว
+          audio: true // <--- ต้องมี audio: true เพื่อให้ได้ไมโครโฟนมาแชร์
         });
         video.srcObject=st;
         await new Promise(r=>{if(video.readyState>=1)r(); else video.onloadedmetadata=()=>r();});
@@ -501,9 +502,6 @@
                      }, 30000);
                  }
              }
-             // อัปเดต currentAudioAlert ทันทีที่สั่งเล่นเสียงใหม่
-             // (ย้ายไปอยู่ใน playAlertSound แล้ว)
-             // currentAudioAlert = soundToPlayId;
           } else {
               // ถ้าไม่มีเสียงใหม่ (soundToPlayId เป็น null) ให้ตั้ง currentAudioAlert เป็น null ด้วย
               currentAudioAlert = null;
@@ -529,11 +527,10 @@
         // === **** (เพิ่ม) ส่งข้อมูลสถานะไปยัง Monitor ถ้ากำลังแชร์อยู่ **** ===
         if (isSharing && ws && ws.readyState === WebSocket.OPEN) {
             const statusData = {
-                type: 'statusUpdate', // กำหนด type ของข้อความ
+                type: 'statusUpdate',
                 payload: {
                     score: Math.round(driverScore),
                     speed: Math.round(speedKPH),
-                    // ส่งสถานะ Alert ปัจจุบัน (ใช้ค่า boolean/text ที่คำนวณไว้แล้ว)
                     alerts: {
                         eyeAlert: eAl,
                         yawnAlert: yAl,
@@ -541,13 +538,12 @@
                         phoneAlert: pAl,
                         wheelAlert: wAl,
                         faceLost: fLs,
-                        yawText: yTxt, // ส่งค่า text ไปเลย ('หันซ้าย', 'หันขวา', '')
-                        pitchText: pTxt, // ส่งค่า text ไปเลย ('ก้มหน้า', 'เงยหน้า', '')
+                        yawText: yTxt,
+                        pitchText: pTxt,
                         takeBreak: isTakingBreakAlert
                     }
                 }
             };
-            // ส่งข้อมูลผ่าน WebSocket
             ws.send(JSON.stringify(statusData));
         }
         // === **** จบส่วนที่เพิ่ม **** ===
@@ -627,7 +623,7 @@
 
           if (!isRunning) {
             btnToggle.disabled = false;
-            btnShare.disabled = false; // <-- (เพิ่ม) เปิดปุ่ม Share
+            btnShare.disabled = false;
           }
 
           canvas.style.outline='3px solid #10b981';
@@ -659,7 +655,7 @@
           if(!modelsReady)await initModels();
           isRunning=true;
           btnToggle.textContent='Stop';
-          btnShare.disabled = false; // <-- (เพิ่ม) เปิดปุ่ม Share
+          btnShare.disabled = false;
           driverScore=100; isTakingBreakAlert=false; hasPlayedScoreSound = false; autoSosSent = false;
           hasAlertedEyes=false;hasAlertedYawn=false;hasAlertedPhone=false;hasAlertedHands=false;hasAlertedWheel=false;hasAlertedYawLeft=false;hasAlertedYawRight=false;hasAlertedPitchDown=false;
           scheduleNext(loop);
@@ -671,23 +667,22 @@
         isRunning=false;
         btnToggle.textContent='Start';
         btnToggle.disabled = true;
-        btnShare.disabled = true; // <-- (เพิ่ม) ปิดปุ่ม Share
-        btnShare.textContent = 'Share Audio'; // <-- (แก้ Text)
+        // ต้องเรียก stopSharing ก่อนปิด stream หลัก
+        if (isSharing) {
+          stopSharing(true); // ส่ง true เพื่อบอกว่าเป็นการหยุดจากปุ่ม Stop หลัก
+        }
+        btnShare.disabled = true;
+        btnShare.textContent = 'Share Audio';
         calibrated = false;
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
         stopAllSoundsNow();
         isTakingBreakAlert = false; hasPlayedScoreSound = false; autoSosSent = false;
         btnCalib.disabled = false; btnSos.disabled = false;
+        // หยุด stream กล้อง/ไมค์
         const s=video.srcObject;if(s){s.getTracks().forEach(t=>t.stop());video.srcObject=null;}
         ctx.clearRect(0,0,canvas.width,canvas.height);
         showAlert('หยุดการตรวจจับ', '', 'error', 2200);
-
-        // --- (เพิ่ม) สั่ง Stop Sharing ถ้ากด Stop ---
-        if (isSharing) {
-          stopSharing(); // <--- เรียกฟังก์ชัน stopSharing() ที่อยู่ข้างล่าง
-        }
-        // ----------------------------------------
       }
     });
 
@@ -708,7 +703,7 @@
         btnCalib.disabled = true;
         btnToggle.disabled = true;
         btnSos.disabled = true;
-        btnShare.disabled = true; // <-- (เพิ่ม) ปิดปุ่ม Share
+        btnShare.disabled = true;
       }
     })();
 
@@ -716,21 +711,17 @@
     // ### ส่วนของ REAL-TIME MONITOR (WebRTC - Audio Only) ###
     // ###############################################
 
-    const WSS_URL = 'wss://project-1-6xbs.onrender.com'; // <-- URL Server ของคุณ
+    const WSS_URL = 'wss://project-1-6xbs.onrender.com';
 
     const iceServers = [
-      // === **** แก้ไข Port ที่ผมพิมพ์ผิด **** ===
-      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้ไข Port
-      { urls: 'stun:stun1.l.google.com:19302' }, // <--- เพิ่ม Server สำรอง (Port ถูกต้อง)
-      // ======================================
-
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
       { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
     ];
 
     let pc; // PeerConnection
     let ws; // WebSocket
-    // (ลบ let isSharing = false; เพราะเราประกาศไว้ข้างบนแล้ว)
 
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
@@ -744,7 +735,7 @@
       pc.onconnectionstatechange = (event) => {
           if (pc.connectionState === 'connected') {
               console.log('Peer connected!');
-              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมเสียงของคุณกำลังถูกแชร์', 'success', 1500); // แก้ข้อความ
+              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมเสียงของคุณกำลังถูกแชร์', 'success', 1500);
           }
           if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
               console.log('Peer disconnected.');
@@ -766,19 +757,15 @@
 
         ws.onopen = () => {
           console.log('Connected to Signaling Server as Driver');
-          // === **** (เพิ่ม) ส่ง Identify **** ===
           ws.send(JSON.stringify({ type: 'identify', role: 'driver' }));
-          // ===================================
           resolve();
         };
 
         ws.onmessage = async (message) => {
           const data = JSON.parse(message.data);
-          // *** (แก้ไข) เช็ก type info เพื่อแสดง log ***
           if (data.type === 'info') {
              console.log('Server Info:', data.message);
           } else {
-             // จัดการข้อความ WebRTC อื่นๆ (answer, candidate)
              switch (data.type) {
                 case 'answer':
                   if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
@@ -789,7 +776,6 @@
                      catch (e) { console.error('Error adding received ICE candidate', e); }
                   }
                   break;
-                // ไม่ต้องมี case 'info' ที่นี่แล้ว
              }
           }
         };
@@ -808,26 +794,21 @@
       });
     }
 
-    // === **** (แก้ไข) startSharing() ให้ส่งเฉพาะเสียง **** ===
+    // === **** (แก้ไข) startSharing() ลบ track.stop() ที่ทำให้กล้องดับ **** ===
     async function startSharing() {
       console.log('Starting stream share...');
       btnShare.disabled = true;
       btnShare.textContent = 'Connecting...';
 
-      showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server (อาจใช้เวลา 1 นาที)', 'warning', 0); // 0 = ค้างไว้
+      showAlert('กำลังเชื่อมต่อ...', 'กำลังเชื่อมต่อกับ Signaling Server (อาจใช้เวลา 1 นาที)', 'warning', 0);
 
       try {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           console.log('No connection, attempting to connect...');
           await connectWebSocket();
-
-          // === **** เพิ่ม Delay 500ms **** ===
           console.log('WebSocket connected, waiting 500ms before creating offer...');
-          await new Promise(resolve => setTimeout(resolve, 500)); // รอ 0.5 วินาที
-          // === **** จบส่วนที่เพิ่ม **** ===
-
-        } // จบ if (!ws...)
-
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
 
         if (!pc) {
           createPeerConnection();
@@ -835,11 +816,11 @@
 
         const stream = video.srcObject;
         if (!stream) {
-            showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง/ไมค์ (กรุณากด Start ก่อน)', 'error', 4000); // แก้ข้อความ
+            showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง/ไมค์ (กรุณากด Start ก่อน)', 'error', 4000);
             throw new Error('No media stream');
         }
 
-        // --- *** แก้ไข: เพิ่มเฉพาะ Audio Track *** ---
+        // --- *** แก้ไข: เพิ่มเฉพาะ Audio Track และลบ track.stop() ที่ไม่จำเป็น *** ---
         let audioTrackAdded = false;
         stream.getTracks().forEach(track => {
           if (track.kind === 'audio') { // <--- เช็กว่าเป็นเสียง
@@ -849,6 +830,7 @@
                audioTrackAdded = true;
              }
           }
+          // *** ลบโค้ด: else { track.stop(); } ออกไปแล้ว ***
         });
 
         // ถ้าหา Audio Track ไม่เจอเลย ให้แจ้งเตือน
@@ -862,7 +844,6 @@
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        // เช็กสถานะ *ก่อน* ส่ง Offer อีกครั้ง
         console.log('Current WebSocket state before sending offer:', ws ? ws.readyState : 'ws is null');
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'offer', payload: offer }));
@@ -874,27 +855,24 @@
 
 
         isSharing = true;
-        btnShare.textContent = 'Stop Audio Share'; // แก้ Text ปุ่ม
+        btnShare.textContent = 'Stop Audio Share';
         btnShare.disabled = false;
 
       } catch (error) {
         console.error('Failed to start sharing:', error);
         showAlert('ส่ง Offer ล้มเหลว', `การเชื่อมต่อถูกตัด (${error.message || 'Unknown reason'})`, 'error', 5000);
-        btnShare.textContent = 'Share Audio'; // แก้ Text ปุ่ม
+        btnShare.textContent = 'Share Audio';
         btnShare.disabled = false;
-        // ไม่ต้อง close ws เพราะ stopSharing จะถูกเรียกจาก onclose/onerror
+        stopSharing(true); // เรียก stopSharing เพื่อ clear state ทั้งหมด
       }
     }
     // === **** (จบ startSharing ที่แก้ไข) **** ===
 
     // สร้างฟังก์ชัน stopSharing ใน scope นี้
-    function stopSharing() {
+    function stopSharing(isFromMainStop = false) {
       if (pc) {
-        // อาจจะต้องวนลูป removeTrack ก่อน close เพื่อความชัวร์ (บาง Browser)
+        // ไม่ต้อง stop track ที่มาจาก video.srcObject เพราะจะทำให้ video ดับ
         pc.getSenders().forEach(sender => {
-            if (sender.track) {
-                sender.track.stop(); // หยุด Track ด้วย
-            }
             pc.removeTrack(sender);
         });
         pc.close();
@@ -908,12 +886,13 @@
       // เช็กว่ากำลังแชร์อยู่จริง ๆ ถึงค่อยแจ้งเตือน
       if (isSharing) {
         isSharing = false;
-        if (isRunning) {
-           showAlert('หยุดแชร์เสียง', 'หยุดการแชร์สตรีมเสียงแล้ว', 'error', 2000); // แก้ข้อความ
+        // ไม่ต้องแจ้งเตือน 'หยุดแชร์เสียง' ถ้าเป็นการปิดจากปุ่ม Stop ระบบหลัก
+        if (isRunning && !isFromMainStop) {
+           showAlert('หยุดแชร์เสียง', 'หยุดการแชร์สตรีมเสียงแล้ว', 'error', 2000);
         }
       }
 
-      btnShare.textContent = 'Share Audio'; // แก้ Text ปุ่ม
+      btnShare.textContent = 'Share Audio';
       if (isRunning) {
         btnShare.disabled = false;
       } else {

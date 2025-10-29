@@ -63,7 +63,8 @@
     <span id="statusText">Disconnected</span>
   </div>
 
-  <div id="audioControls" class="hidden"> <button id="muteMicButton" class="control-button" title="Mute Driver Mic">
+  <div id="audioControls" class="hidden"> 
+      <button id="muteMicButton" class="control-button" title="Mute Driver Mic">
           <svg id="iconMicOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
               <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
@@ -118,7 +119,6 @@
 
     // Element ต่างๆ
     const audioEl = document.getElementById('driverAudio');
-    const statusIndicator = document.getElementById('statusIndicator');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const driverInfoEl = document.getElementById('driverInfo');
@@ -126,7 +126,7 @@
     const infoSpeedEl = document.getElementById('infoSpeed');
     const infoAlertsEl = document.getElementById('infoAlerts');
 
-    // (เพิ่ม) Element ปุ่มควบคุมเสียง
+    // Element ปุ่มควบคุมเสียง
     const audioControlsEl = document.getElementById('audioControls');
     const muteMicButton = document.getElementById('muteMicButton');
     const iconMicOn = document.getElementById('iconMicOn');
@@ -138,8 +138,8 @@
 
     let pc; // PeerConnection
     let ws; // WebSocket
-    let isMicMuted = false; // สถานะ Mute เสียงจาก Driver
-    let isSpeakerMuted = false; // สถานะ Mute ลำโพงตัวเอง
+    let isMicMuted = false; // สถานะ Mute เสียงจาก Driver (ควบคุม Audio Track ที่ได้รับมา)
+    let isSpeakerMuted = false; // สถานะ Mute ลำโพงตัวเอง (ควบคุม audio element)
 
     // --- ฟังก์ชันอัปเดตสถานะ ---
     function updateStatus(connected, message = '') {
@@ -176,7 +176,7 @@
       // อัปเดต UI ปุ่ม
       iconMicOn.classList.toggle('hidden', isMicMuted);
       iconMicOff.classList.toggle('hidden', !isMicMuted);
-      muteMicButton.classList.toggle('active', isMicMuted); // เพิ่ม/ลด class 'active'
+      muteMicButton.classList.toggle('active', isMicMuted);
       muteMicButton.setAttribute('title', isMicMuted ? 'Unmute Driver Mic' : 'Mute Driver Mic');
     }
 
@@ -192,13 +192,12 @@
     }
 
     // ตั้งค่าเริ่มต้น & เพิ่ม Event Listener ให้ปุ่ม
-    audioEl.muted = isSpeakerMuted; // ลำโพงตัวเองไม่ Mute ตอนเริ่ม
+    audioEl.muted = isSpeakerMuted;
     iconSpeakerOn.classList.toggle('hidden', isSpeakerMuted);
     iconSpeakerOff.classList.toggle('hidden', !isSpeakerMuted);
     muteSpeakerButton.setAttribute('title', isSpeakerMuted ? 'Unmute Your Speaker' : 'Mute Your Speaker');
     muteSpeakerButton.addEventListener('click', toggleSpeakerMute);
 
-    // เสียงจาก Driver เริ่มต้นไม่ Mute
     iconMicOn.classList.toggle('hidden', isMicMuted);
     iconMicOff.classList.toggle('hidden', !isMicMuted);
     muteMicButton.setAttribute('title', isMicMuted ? 'Unmute Driver Mic' : 'Mute Driver Mic');
@@ -232,7 +231,7 @@
           if (state === 'connected') {
               updateStatus(true, 'Stream Connected');
               driverInfoEl.classList.remove('hidden');
-              audioControlsEl.classList.remove('hidden'); // แสดงปุ่มเมื่อ Stream ต่อติด
+              audioControlsEl.classList.remove('hidden');
           } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
               updateStatus(false, 'Stream Disconnected');
               if(pc) pc.close();
@@ -243,11 +242,11 @@
               infoAlertsEl.textContent = 'N/A';
               infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
               driverInfoEl.classList.add('hidden');
-              audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มเมื่อ Stream หลุด
+              audioControlsEl.classList.add('hidden');
           } else {
               updateStatus(true, `Stream ${state}...`);
               driverInfoEl.classList.add('hidden');
-              audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มระหว่างเชื่อมต่อ
+              audioControlsEl.classList.add('hidden');
           }
       };
     }
@@ -255,7 +254,7 @@
     function connectWebSocket() {
       updateStatus(false, 'Connecting to server...');
       driverInfoEl.classList.add('hidden');
-      audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มตอนเริ่มต่อ
+      audioControlsEl.classList.add('hidden');
       ws = new WebSocket(WSS_URL);
 
       ws.onopen = () => {
@@ -286,7 +285,6 @@
                 break;
 
               case 'statusUpdate':
-                // ... (โค้ด statusUpdate เหมือนเดิม) ...
                 const payload = data.payload;
                 infoScoreEl.textContent = payload.score ?? '--';
                 infoSpeedEl.textContent = payload.speed ?? '--';
@@ -320,7 +318,7 @@
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
-        updateStatus(false, 'Server Disconnected. Retrying...'); // Server หลุด
+        updateStatus(false, 'Server Disconnected. Retrying...');
         if(pc) {
           pc.close();
           pc = null;
@@ -331,16 +329,16 @@
         infoAlertsEl.textContent = 'N/A';
         infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
         driverInfoEl.classList.add('hidden');
-        audioControlsEl.classList.add('hidden'); // ซ่อนปุ่ม
+        audioControlsEl.classList.add('hidden');
 
         setTimeout(connectWebSocket, 3000);
       };
 
       ws.onerror = (err) => {
         console.error('WebSocket Error:', err);
-        updateStatus(false, 'Server Connection Error'); // เกิด Error
+        updateStatus(false, 'Server Connection Error');
         driverInfoEl.classList.add('hidden');
-        audioControlsEl.classList.add('hidden'); // ซ่อนปุ่ม
+        audioControlsEl.classList.add('hidden');
       };
     }
 
