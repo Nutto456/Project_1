@@ -742,13 +742,14 @@
     const WSS_URL = 'wss://project-1-6xbs.onrender.com'; // <-- URL Server ของคุณ
 
     const iceServers = [
-      // === **** แก้ไข Port ที่ผมพิมพ์ผิด **** ===
-      { urls: 'stun:stun.l.google.com:19302' }, // <--- แก้ไข Port
-      { urls: 'stun:stun1.l.google.com:19302' }, // <--- เพิ่ม Server สำรอง (Port ถูกต้อง)
-      // ======================================
-
-      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: "stun:global.stun.twilio.com:3478" },
+      { 
+        urls: "turn:numb.viagenie.ca:3478",
+        username: "webrtc@live.com",
+        credential: "muazkh" 
+      }
     ];
 
     let pc; // PeerConnection
