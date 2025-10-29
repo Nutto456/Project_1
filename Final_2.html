@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>Real-time Driver Monitoring System (Audio)</title> <link rel="icon" href="data:,">
+  <title>Real-time Driver Monitoring System</title>
+  <link rel="icon" href="data:,">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,7 +20,7 @@
     src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
-    /* ... (CSS Styles ทั้งหมดเหมือนเดิม) ... */
+    /* ... (CSS Styles are the same as before) ... */
      :root { --safe-inset-bottom: env(safe-area-inset-bottom); }
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
     .video-wrap { position: relative; width: 100%; max-width: 560px; aspect-ratio: 3/4; }
@@ -155,7 +156,8 @@
     <header class="mb-3 text-center"> <h1 class="text-2xl font-bold">Real-time Driver Monitoring System</h1> <p class="text-slate-500 dark:text-slate-400 text-sm">ตรวจจับการขับขี่ในแบบเรียลไทม์</p> </header>
 
     <section class="video-wrap mx-auto rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-800 shadow-lg border border-gray-300 dark:border-gray-700">
-      <video id="video" autoplay playsinline muted></video> <canvas id="overlay"></canvas>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
     </section>
 
     <div class="indicator-group"> <div id="eyesStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.125 1.125 0 010-1.113zM12 17.25a5.25 5.25 0 100-10.5 5.25 5.25 0 000 10.5z" clip-rule="evenodd" /></svg> </div> <div id="phoneStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 013-3h15a3 3 0 013 3v13.5a3 3 0 01-3 3h-15a3 3 0 01-3-3V4.5zM15 15.75a.75.75 0 00.75.75h2.25a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75H15a.75.75 0 00-.75.75v7.5z" clip-rule="evenodd" /></svg> </div> <div id="handsStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M11.484 2.17a.75.75 0 01.022 1.063L5.55 11.25a3 3 0 00-1.757 2.252l-.64 3.425a.75.75 0 01-1.096.38l-1.11-1.11a.75.75 0 01.38-1.096l3.425-.641a3 3 0 002.252-1.757l8.02-8.02A.75.75 0 0121.83 2.5l-2.75 2.75a.75.75 0 01-1.06-.022zM21 12a.75.75 0 01-.75.75h-3.5a.75.75 0 010-1.5h3.5A.75.75 0 0121 12zM15 18a.75.75 0 01-.75.75H12a.75.75 0 010-1.5h2.25A.75.75 0 0115 18zM18 15a.75.75 0 01-.75.75H15a.75.75 0 010-1.5h2.25A.75.75 0 0118 15zM6.75 19.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H7.5a.75.75 0 01-.75-.75z" clip-rule="evenodd" /><path d="M16.5 7.5a.75.75 0 01.75-.75h.75a.75.75 0 010 1.5h-.75A.75.75 0 0116.5 7.5z" /></svg> </div> <div id="wheelStatus" class="status-badge bg-green-500"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path fill-rule="evenodd" d="M2.55 7.525a8.25 8.25 0 0110.152-4.144L12 4.582a6.75 6.75 0 00-8.237 3.328l-1.213-.385zM12 18a6 6 0 100-12 6 6 0 000 12zM11.25 9a.75.75 0 00-1.5 0v3.257a3 3 0 00-.776-.804l-1.724-1.725a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l2.25-2.25a.75.75 0 00-1.06-1.06l-1.725 1.724a3 3 0 00-.804.776V9z" clip-rule="evenodd" /><path d="M19.423 9.424a.75.75 0 00-.735-1.06l-2.434.646a.75.75 0 00-.372 1.455l2.062-.549.278.847a.75.75 0 001.442-.473L19.5 9.75l.138-.415.286.076a.75.75 0 00.347-1.458l-2.06-.549-.12.364a.75.75 0 00.223.882zM15.908 4.296a.75.75 0 00-.53-1.285l-1.21-.384a.75.75 0 00-.38.38l-.05.151.05.15a.75.75 0 00.38.38l1.21.385a.75.75 0 00.53-.38l.05-.15-.05-.15zM21.75 12a.75.75 0 00-.75-.75H19a.75.75 0 000 1.5h2A.75.75 0 0021.75 12zM17.25 20a.75.75 0 000 1.5h2a.75.75 0 000-1.5h-2zM12.75 22.5a.75.75 0 000 1.5h.75a.75.75 0 000-1.5h-.75z" /></svg> </div> </div>
@@ -171,7 +173,8 @@
         <button id="btnCalib" class="px-4 py-3 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg flex-1 disabled:bg-indigo-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Calibrate</button>
         <button id="btnToggle" class="px-4 py-3 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg flex-1 disabled:bg-blue-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Start</button>
 
-        <button id="btnShare" class="px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 font-semibold shadow-lg flex-1 disabled:bg-green-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Share Audio</button> <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
+        <button id="btnShare" class="px-4 py-3 rounded-xl text-white bg-green-600 hover:bg-green-700 font-semibold shadow-lg flex-1 disabled:bg-green-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>Share</button>
+        <button id="btnSos" class="px-4 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 font-semibold shadow-lg flex-1 disabled:bg-red-400 disabled:shadow-none transition-all duration-150 border border-white/10" disabled>SOS</button>
     </section>
     </main>
 
@@ -274,28 +277,48 @@
 
     // === **** (ฟังก์ชัน showAlert ที่แก้ไข Bug ครั้งที่ 3) **** ===
     function showAlert(title, subtext, type, duration = 3000) {
+      // เคลียร์ Timeout เก่าทันที (ป้องกันการซ้อน)
       if (alertTimeoutId) { clearTimeout(alertTimeoutId); alertTimeoutId = null; }
+
+      // *** NEW: ล้างข้อความเก่า *ก่อน* ตั้งค่าใหม่เสมอ ***
+      // เพื่อให้แน่ใจว่าค่าเก่าไม่ค้าง ถ้ามีการเรียก showAlert ซ้อนกันเร็วๆ
+      // (ย้ายการล้างไปทำตอนซ่อนแทน เพื่อให้ isCurrentAlert เช็กค่าปัจจุบันได้)
+      // alertTextEl.textContent = '';
+      // alertSubTextEl.textContent = '';
+
+      // ตั้งค่าข้อความใหม่และแสดง Popup
       alertTextEl.textContent = title;
       alertSubTextEl.textContent = subtext;
       alertCard.className = `card ${type}`;
       alertBox.classList.add('show');
+
+      // อัปเดตสถานะ SOS (เหมือนเดิม)
       isSosAlertActive = (title === 'ส่ง SOS สำเร็จ!' || title === 'ส่ง SOS ล้มเหลว!');
+      // เช็กสถานะ Share (เหมือนเดิม)
       const isShareAlert = ['กำลังเชื่อมต่อ...', 'เชื่อมต่อสำเร็จ!', 'เชื่อมต่อล้มเหลว', 'ไม่พบสตรีม', 'หยุดแชร์', 'ระบบยังไม่เริ่ม'].includes(title);
+
+      // ตั้งเวลาซ่อน ถ้า duration > 0
       if (duration > 0) {
-        const expectedTitle = title;
+        const expectedTitle = title; // เก็บ title ที่คาดหวังสำหรับ Timeout นี้
         alertTimeoutId = setTimeout(() => {
+          // *** สำคัญ: เช็กว่าข้อความที่แสดงอยู่ *ยังคงเป็น* ข้อความเดิมหรือไม่ ***
+          //    (ป้องกันกรณีมี Alert ใหม่มาแทรกก่อน Timeout ทำงาน)
           if (alertTextEl.textContent === expectedTitle) {
             alertBox.classList.remove('show');
-            alertTextEl.textContent = '';
-            alertSubTextEl.textContent = '';
+            alertTextEl.textContent = ''; // *** ล้างข้อความเมื่อซ่อนตามเวลา ***
+            alertSubTextEl.textContent = ''; // ล้าง subtext ด้วย
+
+            // ถ้า Alert ที่เพิ่งหายไปเป็น SOS หรือ Share ให้บังคับ loop ทำงาน
             if ((isSosAlertActive || isShareAlert) && isRunning) {
-                isSosAlertActive = false;
-                loop();
+                isSosAlertActive = false; // รีเซ็ตธง SOS ถ้าจำเป็น
+                loop(); // บังคับ loop เพื่อเช็ก Alert พฤติกรรมทันที
             }
           }
+          // ไม่ว่าเงื่อนไขข้างบนจะเป็นจริงหรือไม่ ให้เคลียร์ ID Timeout เสมอ
           alertTimeoutId = null;
         }, duration);
       } else {
+        // สำหรับ Alert ค้าง (duration = 0) ไม่ต้องตั้งเวลาซ่อน
         alertTimeoutId = null;
       }
     }
@@ -672,7 +695,7 @@
         btnToggle.textContent='Start';
         btnToggle.disabled = true;
         btnShare.disabled = true; // <-- (เพิ่ม) ปิดปุ่ม Share
-        btnShare.textContent = 'Share Audio'; // <-- (แก้ Text)
+        btnShare.textContent = 'Share'; // <-- (เพิ่ม) รีเซ็ตข้อความ
         calibrated = false;
         stopWatchSpeed();
         speedDisplay.textContent=Math.round(speedKPH);
@@ -713,7 +736,7 @@
     })();
 
     // ###############################################
-    // ### ส่วนของ REAL-TIME MONITOR (WebRTC - Audio Only) ###
+    // ### ส่วนของ REAL-TIME MONITOR (WebRTC) ###
     // ###############################################
 
     const WSS_URL = 'wss://project-1-6xbs.onrender.com'; // <-- URL Server ของคุณ
@@ -744,7 +767,7 @@
       pc.onconnectionstatechange = (event) => {
           if (pc.connectionState === 'connected') {
               console.log('Peer connected!');
-              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมเสียงของคุณกำลังถูกแชร์', 'success', 1500); // แก้ข้อความ
+              showAlert('เชื่อมต่อสำเร็จ!', 'สตรีมวิดีโอของคุณกำลังถูกแชร์', 'success', 1500);
           }
           if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
               console.log('Peer disconnected.');
@@ -808,7 +831,6 @@
       });
     }
 
-    // === **** (แก้ไข) startSharing() ให้ส่งเฉพาะเสียง **** ===
     async function startSharing() {
       console.log('Starting stream share...');
       btnShare.disabled = true;
@@ -835,29 +857,15 @@
 
         const stream = video.srcObject;
         if (!stream) {
-            showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง/ไมค์ (กรุณากด Start ก่อน)', 'error', 4000); // แก้ข้อความ
-            throw new Error('No media stream');
+            showAlert('ไม่พบสตรีม', 'ไม่พบสตรีมกล้อง (กรุณากด Start ก่อน)', 'error', 4000);
+            throw new Error('No video stream');
         }
 
-        // --- *** แก้ไข: เพิ่มเฉพาะ Audio Track *** ---
-        let audioTrackAdded = false;
         stream.getTracks().forEach(track => {
-          if (track.kind === 'audio') { // <--- เช็กว่าเป็นเสียง
-             if (!pc.getSenders().find(s => s.track === track)) {
-               pc.addTrack(track, stream);
-               console.log('Audio track added.');
-               audioTrackAdded = true;
-             }
+          if (!pc.getSenders().find(s => s.track === track)) {
+            pc.addTrack(track, stream);
           }
         });
-
-        // ถ้าหา Audio Track ไม่เจอเลย ให้แจ้งเตือน
-        if (!audioTrackAdded) {
-            showAlert('ไม่พบ Track เสียง', 'กรุณาตรวจสอบการอนุญาตไมโครโฟน', 'error', 4000);
-            throw new Error('No audio track found in stream');
-        }
-        // --- *** จบส่วนแก้ไข *** ---
-
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -874,29 +882,22 @@
 
 
         isSharing = true;
-        btnShare.textContent = 'Stop Audio Share'; // แก้ Text ปุ่ม
+        btnShare.textContent = 'Stop Share';
         btnShare.disabled = false;
 
       } catch (error) {
         console.error('Failed to start sharing:', error);
+        // showAlert('เชื่อมต่อล้มเหลว', 'Server ไม่ตอบสนอง (โปรดรอ 1 นาทีแล้วลองใหม่)', 'error', 5000);
         showAlert('ส่ง Offer ล้มเหลว', `การเชื่อมต่อถูกตัด (${error.message || 'Unknown reason'})`, 'error', 5000);
-        btnShare.textContent = 'Share Audio'; // แก้ Text ปุ่ม
+        btnShare.textContent = 'Share';
         btnShare.disabled = false;
         // ไม่ต้อง close ws เพราะ stopSharing จะถูกเรียกจาก onclose/onerror
       }
     }
-    // === **** (จบ startSharing ที่แก้ไข) **** ===
 
     // สร้างฟังก์ชัน stopSharing ใน scope นี้
     function stopSharing() {
       if (pc) {
-        // อาจจะต้องวนลูป removeTrack ก่อน close เพื่อความชัวร์ (บาง Browser)
-        pc.getSenders().forEach(sender => {
-            if (sender.track) {
-                sender.track.stop(); // หยุด Track ด้วย
-            }
-            pc.removeTrack(sender);
-        });
         pc.close();
         pc = null;
       }
@@ -908,16 +909,18 @@
       // เช็กว่ากำลังแชร์อยู่จริง ๆ ถึงค่อยแจ้งเตือน
       if (isSharing) {
         isSharing = false;
+        // เช็กว่าปุ่ม Stop ไม่ได้ถูกกด (isRunning ยังเป็น true) ค่อยแสดง Alert "หยุดแชร์"
         if (isRunning) {
-           showAlert('หยุดแชร์เสียง', 'หยุดการแชร์สตรีมเสียงแล้ว', 'error', 2000); // แก้ข้อความ
+           showAlert('หยุดแชร์', 'หยุดการแชร์สตรีมวิดีโอแล้ว', 'error', 2000);
         }
       }
 
-      btnShare.textContent = 'Share Audio'; // แก้ Text ปุ่ม
+      btnShare.textContent = 'Share';
+      // ถ้า isRunning ยังเป็น true ก็เปิดปุ่ม
       if (isRunning) {
         btnShare.disabled = false;
       } else {
-        btnShare.disabled = true;
+        btnShare.disabled = true; // ถ้า isRunning เป็น false ให้ปิดปุ่ม Share ด้วย
       }
     }
 
