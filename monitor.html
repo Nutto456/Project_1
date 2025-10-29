@@ -1,35 +1,39 @@
 <!DOCTYPE html>
-<html lang="th" class="dark"> 
-<head>
+<html lang="th" class="dark"> <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Driver Monitor</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { 
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; 
+    /* เพิ่มสไตล์นิดหน่อย */
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      /* ทำให้ body เต็มจอ และใช้ flex จัดกลาง */
       min-height: 100vh;
       display: flex;
-      flex-direction: column; 
+      flex-direction: column; /* เรียงแนวตั้ง */
       align-items: center;
       justify-content: center;
       padding: 1rem;
     }
+    /* กำหนดขนาดวิดีโอ (ลบ aspect-ratio) */
     #videoContainer {
-      position: relative; 
+      position: relative; /* สำหรับวางปุ่ม Mute */
       width: 100%;
-      max-width: 800px; 
-      /* aspect-ratio: 4 / 3; */ /* <-- ลบ aspect-ratio ออก */
-      overflow: hidden; 
+      max-width: 800px; /* ขนาดใหญ่สุด */
+      /* aspect-ratio: 4 / 3; */ /* <-- ลบบรรทัดนี้ */
+      overflow: hidden; /* ซ่อนส่วนเกิน */
     }
     video {
       width: 100%;
       height: 100%;
-      object-fit: cover; 
-      /* === เพิ่มบรรทัดนี้เพื่อกลับด้านภาพ === */
-      transform: scaleX(-1); 
+      object-fit: cover; /* ให้วิดีโอเต็มกรอบ */
+      /* === เพิ่ม transform เพื่อกลับด้าน === */
+      transform: scaleX(-1);
       /* ==================================== */
+      display: block; /* แก้ปัญหา space ใต้วิดีโอ */
     }
+    /* สไตล์ปุ่ม Mute */
     #muteButton {
       position: absolute;
       bottom: 1rem;
@@ -48,13 +52,11 @@
     }
   </style>
 </head>
-<body class="bg-slate-900 text-white"> 
+<body class="bg-slate-900 text-white"> <h1 class="text-2xl font-bold mb-4">Driver Monitor Feed</h1>
 
-  <h1 class="text-2xl font-bold mb-4">Driver Monitor Feed</h1>
-  
   <div id="videoContainer" class="rounded-lg shadow-lg bg-black border border-slate-700">
-    <video id="driverVideo" autoplay playsinline></video> 
-    
+    <video id="driverVideo" autoplay playsinline></video>
+
     <button id="muteButton" class="p-2 rounded-full text-white opacity-80 hover:opacity-100 transition-opacity" title="Mute/Unmute">
       <svg id="iconSpeaker" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
         <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 01-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
@@ -69,14 +71,27 @@
   </div>
 
   <div id="statusIndicator" class="mt-4 text-sm text-slate-400 flex items-center gap-2">
-    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span> 
-    <span id="statusText">Disconnected</span> 
-  </div>
+    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span> <span id="statusText">Disconnected</span> </div>
 
+  <div id="driverInfo" class="mt-4 p-4 rounded-lg bg-slate-800 border border-slate-700 w-full max-w-md text-sm text-slate-300 hidden"> <div class="flex justify-between mb-2 pb-2 border-b border-slate-700">
+          <span class="flex flex-col items-center">
+              <span class="text-xs text-slate-400">SCORE</span>
+              <strong id="infoScore" class="text-2xl text-white font-semibold">--</strong>
+          </span>
+          <span class="flex flex-col items-center">
+              <span class="text-xs text-slate-400">SPEED</span>
+              <strong id="infoSpeed" class="text-2xl text-white font-semibold">--</strong>
+              <span class="text-xs text-slate-400 -mt-1">KPH</span>
+          </span>
+      </div>
+      <div class="mt-1 text-center">
+          <span class="text-xs text-slate-400 block mb-1">DRIVER STATUS</span>
+          <span id="infoAlerts" class="text-slate-500 font-semibold px-2 py-1 rounded text-base">N/A</span> </div>
+  </div>
   <script>
     // URL Server (ถูกต้องแล้ว)
-    const WSS_URL = 'wss://project-1-6xbs.onrender.com'; 
-    
+    const WSS_URL = 'wss://project-1-6xbs.onrender.com';
+
     // ICE Servers (ถูกต้องแล้ว)
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -93,7 +108,13 @@
     const statusIndicator = document.getElementById('statusIndicator');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
-    
+
+    // (เพิ่ม) Element ข้อมูลคนขับ
+    const driverInfoEl = document.getElementById('driverInfo');
+    const infoScoreEl = document.getElementById('infoScore');
+    const infoSpeedEl = document.getElementById('infoSpeed');
+    const infoAlertsEl = document.getElementById('infoAlerts');
+
     let pc; // PeerConnection
     let ws; // WebSocket
     let isMuted = false; // สถานะ Mute
@@ -109,6 +130,7 @@
         statusDot.classList.add('bg-red-500', 'animate-pulse');
         statusText.textContent = message || 'Disconnected';
         videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
+        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับเมื่อหลุด
       }
     }
 
@@ -122,14 +144,14 @@
       muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
     }
     // ตั้งค่าเริ่มต้นให้ video ไม่ Mute และไอคอนถูกต้อง
-    videoEl.muted = isMuted; 
+    videoEl.muted = isMuted;
     iconSpeaker.classList.toggle('hidden', isMuted);
     iconMuted.classList.toggle('hidden', !isMuted);
     muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
     // เพิ่ม Event Listener ให้ปุ่ม
     muteButton.addEventListener('click', toggleMute);
 
-    // --- WebRTC Logic (เหมือนเดิม + เพิ่ม updateStatus) ---
+    // --- WebRTC Logic (เพิ่มการแสดง/ซ่อน driverInfo และรีเซ็ตข้อมูล) ---
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
 
@@ -142,54 +164,106 @@
       pc.ontrack = (event) => {
         console.log('Got remote track!');
         videoEl.srcObject = event.streams[0];
+        driverInfoEl.classList.remove('hidden'); // แสดงข้อมูลคนขับเมื่อได้รับ Track
       };
-      
+
       pc.onconnectionstatechange = (event) => {
           const state = pc.connectionState;
           console.log('PeerConnection State:', state);
           if (state === 'connected') {
               updateStatus(true, 'Stream Connected'); // เชื่อมต่อสำเร็จ
+              driverInfoEl.classList.remove('hidden'); // แสดงข้อมูลคนขับ
           } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
               updateStatus(false, 'Stream Disconnected'); // การเชื่อมต่อสตรีมหลุด
               if(pc) pc.close();
               pc = null;
+              // รีเซ็ตข้อมูลคนขับ
+              infoScoreEl.textContent = '--';
+              infoSpeedEl.textContent = '--';
+              infoAlertsEl.textContent = 'N/A';
+              infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base'; // รีเซ็ตสี
+              driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
           } else {
               updateStatus(true, `Stream ${state}...`); // กำลังเชื่อมต่อ (connecting, checking)
+              driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลระหว่างเชื่อมต่อ
           }
       };
     }
 
     function connectWebSocket() {
       updateStatus(false, 'Connecting to server...'); // เริ่มต้น: กำลังเชื่อมต่อ Server
+      driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับตอนเริ่มต่อ
       ws = new WebSocket(WSS_URL);
 
       ws.onopen = () => {
         console.log('Connected to Signaling Server as Monitor');
         updateStatus(true, 'Server Connected'); // เชื่อมต่อ Server สำเร็จ
-        createPeerConnection(); 
+        createPeerConnection();
       };
 
       ws.onmessage = async (message) => {
         const data = JSON.parse(message.data);
         switch (data.type) {
-          case 'offer': 
-            if (!pc) createPeerConnection(); 
+          case 'offer':
+            if (!pc) createPeerConnection();
             await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             ws.send(JSON.stringify({ type: 'answer', payload: answer }));
             break;
-          case 'candidate': 
+          case 'candidate':
             if (pc && data.payload) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); } 
+              try { await pc.addIceCandidate(new RTCIceCandidate(data.payload)); }
               catch (e) { console.error('Error adding ICE candidate', e); }
             }
             break;
           case 'info':
             console.log('Server Info:', data.message);
             break;
-        }
-      };
+
+          // **** (เพิ่ม) รับข้อมูล statusUpdate ****
+          case 'statusUpdate':
+            const payload = data.payload;
+
+            // 1. อัปเดตคะแนนและความเร็ว
+            infoScoreEl.textContent = payload.score ?? '--';
+            infoSpeedEl.textContent = payload.speed ?? '--';
+
+            // 2. อัปเดตสถานะ Alert
+            const alerts = payload.alerts;
+            let alertText = 'NORMAL'; // ค่าเริ่มต้น
+            const activeAlerts = []; // เก็บ Alert ที่เกิดขึ้นจริง
+
+            // แปลงค่า boolean/text เป็นข้อความ Alert
+            if (alerts.takeBreak) activeAlerts.push('พักผ่อนด่วน!');
+            if (alerts.eyeAlert) activeAlerts.push('หลับตา');
+            if (alerts.handsAlert) activeAlerts.push('ปล่อยมือสองข้าง');
+            if (alerts.wheelAlert) activeAlerts.push('ละมือจากพวงมาลัย');
+            if (alerts.phoneAlert) activeAlerts.push('ใช้โทรศัพท์');
+            if (alerts.pitchText === 'ก้มหน้า') activeAlerts.push('ก้มหน้า');
+            if (alerts.pitchText === 'เงยหน้า') activeAlerts.push('เงยหน้า');
+            if (alerts.yawnAlert) activeAlerts.push('หาว');
+            if (alerts.faceLost) activeAlerts.push('ไม่พบใบหน้า');
+            if (alerts.yawText === 'หันซ้าย') activeAlerts.push('หันซ้าย');
+            if (alerts.yawText === 'หันขวา') activeAlerts.push('หันขวา');
+
+            // 3. แสดงผล Alert
+            if (activeAlerts.length > 0) {
+                alertText = activeAlerts.join(' / '); // รวม Alert ทั้งหมด
+                // เปลี่ยนสีพื้นหลัง/ตัวหนังสือของ infoAlertsEl เป็นสีแดง/ส้ม
+                infoAlertsEl.textContent = alertText;
+                // ใช้ Tailwind classes โดยตรง
+                infoAlertsEl.className = 'text-red-400 font-semibold px-2 py-1 rounded bg-red-900/50 text-base animate-pulse';
+            } else {
+                // ถ้าไม่มี Alert ให้กลับเป็นสถานะ Normal
+                infoAlertsEl.textContent = alertText;
+                infoAlertsEl.className = 'text-green-400 font-semibold px-2 py-1 rounded bg-green-900/50 text-base';
+            }
+            break;
+          // **** จบ Case statusUpdate ****
+
+        } // จบ switch
+      }; // จบ onmessage
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
@@ -198,12 +272,20 @@
           pc.close();
           pc = null;
         }
-        setTimeout(connectWebSocket, 3000); 
+        // รีเซ็ตข้อมูลคนขับ
+        infoScoreEl.textContent = '--';
+        infoSpeedEl.textContent = '--';
+        infoAlertsEl.textContent = 'N/A';
+        infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base'; // รีเซ็ตสี
+        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
+
+        setTimeout(connectWebSocket, 3000);
       };
-      
+
       ws.onerror = (err) => {
         console.error('WebSocket Error:', err);
         updateStatus(false, 'Server Connection Error'); // เกิด Error
+        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
       };
     }
 
