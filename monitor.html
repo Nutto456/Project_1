@@ -5,35 +5,29 @@
   <title>Driver Monitor</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* เพิ่มสไตล์นิดหน่อย */
+    /* ... (CSS ทั้งหมดเหมือนเดิม) ... */
     body {
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-      /* ทำให้ body เต็มจอ และใช้ flex จัดกลาง */
       min-height: 100vh;
       display: flex;
-      flex-direction: column; /* เรียงแนวตั้ง */
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 1rem;
     }
-    /* กำหนดขนาดวิดีโอ (ลบ aspect-ratio) */
     #videoContainer {
-      position: relative; /* สำหรับวางปุ่ม Mute */
+      position: relative;
       width: 100%;
-      max-width: 800px; /* ขนาดใหญ่สุด */
-      /* aspect-ratio: 4 / 3; */ /* <-- ลบบรรทัดนี้ */
-      overflow: hidden; /* ซ่อนส่วนเกิน */
+      max-width: 800px;
+      overflow: hidden;
     }
     video {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* ให้วิดีโอเต็มกรอบ */
-      /* === เพิ่ม transform เพื่อกลับด้าน === */
+      object-fit: cover;
       transform: scaleX(-1);
-      /* ==================================== */
-      display: block; /* แก้ปัญหา space ใต้วิดีโอ */
+      display: block;
     }
-    /* สไตล์ปุ่ม Mute */
     #muteButton {
       position: absolute;
       bottom: 1rem;
@@ -89,10 +83,9 @@
           <span id="infoAlerts" class="text-slate-500 font-semibold px-2 py-1 rounded text-base">N/A</span> </div>
   </div>
   <script>
-    // URL Server (ถูกต้องแล้ว)
     const WSS_URL = 'wss://project-1-6xbs.onrender.com';
 
-    // ICE Servers (ถูกต้องแล้ว)
+    // === **** (อัปเดต) ให้ใช้ iceServers ชุดเดียวกับ Final_2.html **** ===
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
@@ -113,6 +106,8 @@
         credential: 'openrelayproject' 
       }
     ];
+    // === **** (จบส่วนอัปเดต) **** ===
+
 
     // Element ต่างๆ
     const videoEl = document.getElementById('driverVideo');
@@ -122,8 +117,6 @@
     const statusIndicator = document.getElementById('statusIndicator');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
-
-    // (เพิ่ม) Element ข้อมูลคนขับ
     const driverInfoEl = document.getElementById('driverInfo');
     const infoScoreEl = document.getElementById('infoScore');
     const infoSpeedEl = document.getElementById('infoSpeed');
@@ -131,9 +124,8 @@
 
     let pc; // PeerConnection
     let ws; // WebSocket
-    let isMuted = false; // สถานะ Mute
+    let isMuted = false;
 
-    // --- ฟังก์ชันอัปเดตสถานะ ---
     function updateStatus(connected, message = '') {
       if (connected) {
         statusDot.classList.remove('bg-red-500', 'animate-pulse');
@@ -143,29 +135,25 @@
         statusDot.classList.remove('bg-green-500');
         statusDot.classList.add('bg-red-500', 'animate-pulse');
         statusText.textContent = message || 'Disconnected';
-        videoEl.srcObject = null; // หยุดวิดีโอเมื่อหลุด
-        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับเมื่อหลุด
+        videoEl.srcObject = null; 
+        driverInfoEl.classList.add('hidden');
       }
     }
 
-    // --- ฟังก์ชัน Mute/Unmute ---
     function toggleMute() {
       isMuted = !isMuted;
-      videoEl.muted = isMuted; // สั่ง Mute/Unmute ที่ตัว video
-      // สลับไอคอน
+      videoEl.muted = isMuted;
       iconSpeaker.classList.toggle('hidden', isMuted);
       iconMuted.classList.toggle('hidden', !isMuted);
       muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
     }
-    // ตั้งค่าเริ่มต้นให้ video ไม่ Mute และไอคอนถูกต้อง
+    
     videoEl.muted = isMuted;
     iconSpeaker.classList.toggle('hidden', isMuted);
     iconMuted.classList.toggle('hidden', !isMuted);
     muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
-    // เพิ่ม Event Listener ให้ปุ่ม
     muteButton.addEventListener('click', toggleMute);
 
-    // --- WebRTC Logic (เพิ่มการแสดง/ซ่อน driverInfo และรีเซ็ตข้อมูล) ---
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
 
@@ -177,57 +165,72 @@
 
       pc.ontrack = (event) => {
         console.log('Got remote track!');
-        videoEl.srcObject = event.streams[0];
-        driverInfoEl.classList.remove('hidden'); // แสดงข้อมูลคนขับเมื่อได้รับ Track
+        // (แก้ไข) เพื่อความชัวร์ ให้เช็ก track ว่ามีไหม
+        if (event.streams && event.streams[0]) {
+            videoEl.srcObject = event.streams[0];
+            driverInfoEl.classList.remove('hidden');
+        } else {
+             console.error('onTrack event fired but no stream found.');
+        }
       };
 
       pc.onconnectionstatechange = (event) => {
           const state = pc.connectionState;
           console.log('PeerConnection State:', state);
           if (state === 'connected') {
-              updateStatus(true, 'Stream Connected'); // เชื่อมต่อสำเร็จ
-              driverInfoEl.classList.remove('hidden'); // แสดงข้อมูลคนขับ
+              updateStatus(true, 'Stream Connected');
+              driverInfoEl.classList.remove('hidden'); 
           } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
-              updateStatus(false, 'Stream Disconnected'); // การเชื่อมต่อสตรีมหลุด
+              updateStatus(false, 'Stream Disconnected');
               if(pc) pc.close();
               pc = null;
-              // รีเซ็ตข้อมูลคนขับ
               infoScoreEl.textContent = '--';
               infoSpeedEl.textContent = '--';
               infoAlertsEl.textContent = 'N/A';
-              infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base'; // รีเซ็ตสี
-              driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
+              infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
+              driverInfoEl.classList.add('hidden');
           } else {
-              updateStatus(true, `Stream ${state}...`); // กำลังเชื่อมต่อ (connecting, checking)
-              driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลระหว่างเชื่อมต่อ
+              updateStatus(true, `Stream ${state}...`);
+              driverInfoEl.classList.add('hidden');
           }
       };
     }
 
     function connectWebSocket() {
-      updateStatus(false, 'Connecting to server...'); // เริ่มต้น: กำลังเชื่อมต่อ Server
-      driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับตอนเริ่มต่อ
+      updateStatus(false, 'Connecting to server...');
+      driverInfoEl.classList.add('hidden');
       ws = new WebSocket(WSS_URL);
 
       ws.onopen = () => {
         console.log('Connected to Signaling Server as Monitor');
-        // === **** (เพิ่ม) ส่ง Identify **** ===
         ws.send(JSON.stringify({ type: 'identify', role: 'monitor' }));
-        // ===================================
-        updateStatus(true, 'Server Connected'); // เชื่อมต่อ Server สำเร็จ
-        createPeerConnection();
+        updateStatus(true, 'Server Connected'); 
+        
+        // (แก้ไข) เราสร้าง PC ไว้รอรับ Offer ได้เลย
+        // ไม่ต้องรอ onmessage
+        if (!pc) {
+            createPeerConnection();
+        }
       };
 
       ws.onmessage = async (message) => {
         const data = JSON.parse(message.data);
-         // *** (แก้ไข) เช็ก type info เพื่อแสดง log ***
+        
         if (data.type === 'info') {
            console.log('Server Info:', data.message);
         } else {
-           // จัดการข้อความ WebRTC และ statusUpdate
            switch (data.type) {
               case 'offer':
                 if (!pc) createPeerConnection();
+                
+                // (แก้ไข) เพิ่มการตั้งค่า Transceiver ให้รับอย่างเดียว
+                // เพื่อให้แมตช์กับ Final_2 (ที่ส่งอย่างเดียว)
+                pc.getTransceivers().forEach(transceiver => {
+                    if (transceiver.direction === 'inactive') {
+                       transceiver.direction = 'recvonly';
+                    }
+                });
+                
                 await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
@@ -239,10 +242,8 @@
                   catch (e) { console.error('Error adding ICE candidate', e); }
                 }
                 break;
-              // ไม่ต้องมี case 'info' ที่นี่แล้ว
 
               case 'statusUpdate':
-                // ... (โค้ด statusUpdate เหมือนเดิม) ...
                 const payload = data.payload;
                 infoScoreEl.textContent = payload.score ?? '--';
                 infoSpeedEl.textContent = payload.speed ?? '--';
@@ -251,7 +252,6 @@
                 const activeAlerts = [];
                 if (alerts.takeBreak) activeAlerts.push('พักผ่อนด่วน!');
                 if (alerts.eyeAlert) activeAlerts.push('หลับตา');
-                // ... (เช็ก alert อื่นๆ) ...
                 if (alerts.handsAlert) activeAlerts.push('ปล่อยมือสองข้าง');
                 if (alerts.wheelAlert) activeAlerts.push('ละมือจากพวงมาลัย');
                 if (alerts.phoneAlert) activeAlerts.push('ใช้โทรศัพท์');
@@ -271,35 +271,33 @@
                     infoAlertsEl.className = 'text-green-400 font-semibold px-2 py-1 rounded bg-green-900/50 text-base';
                 }
                 break;
-            } // จบ switch
-        } // จบ else
-      }; // จบ onmessage
+            }
+        } 
+      }; 
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
-        updateStatus(false, 'Server Disconnected. Retrying...'); // Server หลุด
+        updateStatus(false, 'Server Disconnected. Retrying...');
         if(pc) {
           pc.close();
           pc = null;
         }
-        // รีเซ็ตข้อมูลคนขับ
         infoScoreEl.textContent = '--';
         infoSpeedEl.textContent = '--';
         infoAlertsEl.textContent = 'N/A';
-        infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base'; // รีเซ็ตสี
-        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
+        infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
+        driverInfoEl.classList.add('hidden'); 
 
         setTimeout(connectWebSocket, 3000);
       };
 
       ws.onerror = (err) => {
         console.error('WebSocket Error:', err);
-        updateStatus(false, 'Server Connection Error'); // เกิด Error
-        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับ
+        updateStatus(false, 'Server Connection Error');
+        driverInfoEl.classList.add('hidden');
       };
     }
 
-    // เริ่มการเชื่อมต่อ
     connectWebSocket();
   </script>
 </body>
