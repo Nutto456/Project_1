@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="th" class="dark"> <head>
+<html lang="th" class="dark">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Driver Monitor</title>
+  <title>Driver Monitor (Audio)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* ... (CSS ทั้งหมดเหมือนเดิม) ... */
     body {
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
       min-height: 100vh;
@@ -15,59 +15,78 @@
       justify-content: center;
       padding: 1rem;
     }
-    #videoContainer {
-      position: relative;
-      width: 100%;
-      max-width: 800px;
-      overflow: hidden;
+    /* ซ่อน audio element */
+    #driverAudio {
+        display: none;
     }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-      display: block;
+    /* จัดกลุ่มปุ่มควบคุมเสียง */
+    #audioControls {
+        display: flex;
+        gap: 0.5rem; /* ระยะห่างระหว่างปุ่ม */
+        margin-top: 1rem; /* ระยะห่างจาก Status Indicator */
     }
-    #muteButton {
-      position: absolute;
-      bottom: 1rem;
-      right: 1rem;
-      z-index: 10;
-      background-color: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+    /* สไตล์ปุ่มควบคุมเสียง */
+    .control-button {
+      background-color: rgba(71, 85, 105, 0.6); /* bg-slate-700 opacity 60% */
+      border: 1px solid rgba(100, 116, 139, 0.5); /* border-slate-600 opacity 50% */
       backdrop-filter: blur(5px);
+      padding: 0.5rem; /* p-2 */
+      border-radius: 9999px; /* rounded-full */
+      color: white;
+      opacity: 0.8;
+      transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out;
     }
-    #muteButton:hover {
-      background-color: rgba(0, 0, 0, 0.8);
+    .control-button:hover {
+      opacity: 1;
+      background-color: rgba(51, 65, 85, 0.8); /* bg-slate-800 opacity 80% */
     }
-    #muteButton svg {
-      width: 1.25rem; /* 20px */
-      height: 1.25rem; /* 20px */
+    .control-button svg {
+      width: 1.25rem; /* w-5 */
+      height: 1.25rem; /* h-5 */
     }
+    /* ทำให้ปุ่ม active ดูต่างออกไปเล็กน้อย (เช่น ตอน Mute) */
+     .control-button.active {
+       background-color: rgba(220, 38, 38, 0.7); /* bg-red-600 opacity 70% */
+       border-color: rgba(185, 28, 28, 0.6); /* border-red-700 opacity 60% */
+     }
+
   </style>
 </head>
-<body class="bg-slate-900 text-white"> <h1 class="text-2xl font-bold mb-4">Driver Monitor Feed</h1>
+<body class="bg-slate-900 text-white">
 
-  <div id="videoContainer" class="rounded-lg shadow-lg bg-black border border-slate-700">
-    <video id="driverVideo" autoplay playsinline></video>
+  <h1 class="text-2xl font-bold mb-4">Driver Monitor (Audio Feed)</h1>
 
-    <button id="muteButton" class="p-2 rounded-full text-white opacity-80 hover:opacity-100 transition-opacity" title="Mute/Unmute">
-      <svg id="iconSpeaker" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 01-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
-        <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
-      </svg>
-      <svg id="iconMuted" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06z" />
-        <path d="M17.28 9.72a.75.75 0 00-1.06 1.06 4.5 4.5 0 010 6.364.75.75 0 001.06 1.06 6 6 0 000-8.486.75.75 0 00-1.06 0z" />
-        <path d="M19.94 7.05a.75.75 0 00-1.06 1.06 8.25 8.25 0 010 11.668.75.75 0 101.06 1.06c3.808-3.807 3.808-9.98 0-13.788zM22.01 4.979L4.978 22.011a.75.75 0 01-1.06-1.06L20.95 3.919a.75.75 0 011.06 1.06z" />
-      </svg>
-    </button>
-  </div>
+  <audio id="driverAudio" autoplay playsinline></audio>
 
   <div id="statusIndicator" class="mt-4 text-sm text-slate-400 flex items-center gap-2">
-    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span> <span id="statusText">Disconnected</span> </div>
+    <span id="statusDot" class="w-3 h-3 rounded-full bg-red-500 inline-block animate-pulse"></span>
+    <span id="statusText">Disconnected</span>
+  </div>
 
-  <div id="driverInfo" class="mt-4 p-4 rounded-lg bg-slate-800 border border-slate-700 w-full max-w-md text-sm text-slate-300 hidden"> <div class="flex justify-between mb-2 pb-2 border-b border-slate-700">
+  <div id="audioControls" class="hidden"> <button id="muteMicButton" class="control-button" title="Mute Driver Mic">
+          <svg id="iconMicOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+              <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+          </svg>
+          <svg id="iconMicOff" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13.875 3.633a3.743 3.743 0 00-3.75 0V11.84c.488.118.96.307 1.375.558V4.5a2.25 2.25 0 014.5 0v7.898a6.839 6.839 0 01-6.75 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.839 6.839 0 01-6.75-6.709V12.75a.75.75 0 011.5 0v-.009A5.23 5.23 0 008.25 12.16V4.5a2.25 2.25 0 01-.06-.517 3.743 3.743 0 005.686-.35z" />
+              <path d="M22.01 4.979L4.978 22.011a.75.75 0 01-1.06-1.06L20.95 3.919a.75.75 0 011.06 1.06z" />
+          </svg>
+      </button>
+      <button id="muteSpeakerButton" class="control-button" title="Mute Your Speaker">
+          <svg id="iconSpeakerOn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 01-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+              <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+          </svg>
+          <svg id="iconSpeakerOff" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.348 2.595.341 1.24 1.518 1.905 2.66 1.905H6.44l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06z" />
+              <path d="M17.28 9.72a.75.75 0 00-1.06 1.06 4.5 4.5 0 010 6.364.75.75 0 001.06 1.06 6 6 0 000-8.486.75.75 0 00-1.06 0z" />
+              <path d="M19.94 7.05a.75.75 0 00-1.06 1.06 8.25 8.25 0 010 11.668.75.75 0 101.06 1.06c3.808-3.807 3.808-9.98 0-13.788zM22.01 4.979L4.978 22.011a.75.75 0 01-1.06-1.06L20.95 3.919a.75.75 0 011.06 1.06z" />
+          </svg>
+      </button>
+  </div>
+  <div id="driverInfo" class="mt-4 p-4 rounded-lg bg-slate-800 border border-slate-700 w-full max-w-md text-sm text-slate-300 hidden">
+      <div class="flex justify-between mb-2 pb-2 border-b border-slate-700">
           <span class="flex flex-col items-center">
               <span class="text-xs text-slate-400">SCORE</span>
               <strong id="infoScore" class="text-2xl text-white font-semibold">--</strong>
@@ -80,40 +99,25 @@
       </div>
       <div class="mt-1 text-center">
           <span class="text-xs text-slate-400 block mb-1">DRIVER STATUS</span>
-          <span id="infoAlerts" class="text-slate-500 font-semibold px-2 py-1 rounded text-base">N/A</span> </div>
+          <span id="infoAlerts" class="text-slate-500 font-semibold px-2 py-1 rounded text-base">N/A</span>
+      </div>
   </div>
+
+
   <script>
+    // URL Server (ถูกต้องแล้ว)
     const WSS_URL = 'wss://project-1-6xbs.onrender.com';
 
-    // === **** (อัปเดต) ให้ใช้ iceServers ชุดเดียวกับ Final_2.html **** ===
+    // ICE Servers (ถูกต้องแล้ว)
     const iceServers = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: "stun:global.stun.twilio.com:3478" },
-      { 
-        urls: "turn:numb.viagenie.ca:3478",
-        username: "webrtc@live.com",
-        credential: "muazkh" 
-      },
-      { 
-        urls: 'turn:openrelay.metered.ca:80', 
-        username: 'openrelayproject', 
-        credential: 'openrelayproject' 
-      },
-      { 
-        urls: 'turn:openrelay.metered.ca:443', 
-        username: 'openrelayproject', 
-        credential: 'openrelayproject' 
-      }
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
     ];
-    // === **** (จบส่วนอัปเดต) **** ===
-
 
     // Element ต่างๆ
-    const videoEl = document.getElementById('driverVideo');
-    const muteButton = document.getElementById('muteButton');
-    const iconSpeaker = document.getElementById('iconSpeaker');
-    const iconMuted = document.getElementById('iconMuted');
+    const audioEl = document.getElementById('driverAudio');
     const statusIndicator = document.getElementById('statusIndicator');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
@@ -122,38 +126,86 @@
     const infoSpeedEl = document.getElementById('infoSpeed');
     const infoAlertsEl = document.getElementById('infoAlerts');
 
+    // (เพิ่ม) Element ปุ่มควบคุมเสียง
+    const audioControlsEl = document.getElementById('audioControls');
+    const muteMicButton = document.getElementById('muteMicButton');
+    const iconMicOn = document.getElementById('iconMicOn');
+    const iconMicOff = document.getElementById('iconMicOff');
+    const muteSpeakerButton = document.getElementById('muteSpeakerButton');
+    const iconSpeakerOn = document.getElementById('iconSpeakerOn');
+    const iconSpeakerOff = document.getElementById('iconSpeakerOff');
+
+
     let pc; // PeerConnection
     let ws; // WebSocket
-    let isMuted = false;
+    let isMicMuted = false; // สถานะ Mute เสียงจาก Driver
+    let isSpeakerMuted = false; // สถานะ Mute ลำโพงตัวเอง
 
+    // --- ฟังก์ชันอัปเดตสถานะ ---
     function updateStatus(connected, message = '') {
       if (connected) {
         statusDot.classList.remove('bg-red-500', 'animate-pulse');
         statusDot.classList.add('bg-green-500');
         statusText.textContent = message || 'Connected';
+        audioControlsEl.classList.remove('hidden'); // แสดงปุ่มควบคุมเสียงเมื่อต่อติด
       } else {
         statusDot.classList.remove('bg-green-500');
         statusDot.classList.add('bg-red-500', 'animate-pulse');
         statusText.textContent = message || 'Disconnected';
-        videoEl.srcObject = null; 
-        driverInfoEl.classList.add('hidden');
+        if (audioEl.srcObject) {
+            audioEl.srcObject.getTracks().forEach(track => track.stop());
+            audioEl.srcObject = null;
+        }
+        driverInfoEl.classList.add('hidden'); // ซ่อนข้อมูลคนขับเมื่อหลุด
+        audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มควบคุมเสียงเมื่อหลุด
       }
     }
 
-    function toggleMute() {
-      isMuted = !isMuted;
-      videoEl.muted = isMuted;
-      iconSpeaker.classList.toggle('hidden', isMuted);
-      iconMuted.classList.toggle('hidden', !isMuted);
-      muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
+    // --- ฟังก์ชัน Mute/Unmute เสียงจาก Driver (ควบคุม Audio Track ที่ได้รับมา) ---
+    function toggleMicMute() {
+      isMicMuted = !isMicMuted;
+      // หา Audio Track ที่ได้รับมา แล้วสั่ง enabled = false/true
+      if (pc && pc.getReceivers) {
+          pc.getReceivers().forEach(receiver => {
+              if (receiver.track && receiver.track.kind === 'audio') {
+                  receiver.track.enabled = !isMicMuted;
+                  console.log(`Driver audio track enabled: ${!isMicMuted}`);
+              }
+          });
+      }
+      // อัปเดต UI ปุ่ม
+      iconMicOn.classList.toggle('hidden', isMicMuted);
+      iconMicOff.classList.toggle('hidden', !isMicMuted);
+      muteMicButton.classList.toggle('active', isMicMuted); // เพิ่ม/ลด class 'active'
+      muteMicButton.setAttribute('title', isMicMuted ? 'Unmute Driver Mic' : 'Mute Driver Mic');
     }
-    
-    videoEl.muted = isMuted;
-    iconSpeaker.classList.toggle('hidden', isMuted);
-    iconMuted.classList.toggle('hidden', !isMuted);
-    muteButton.setAttribute('title', isMuted ? 'Unmute' : 'Mute');
-    muteButton.addEventListener('click', toggleMute);
 
+    // --- ฟังก์ชัน Mute/Unmute ลำโพงตัวเอง (ควบคุม audio element) ---
+    function toggleSpeakerMute() {
+        isSpeakerMuted = !isSpeakerMuted;
+        audioEl.muted = isSpeakerMuted; // สั่ง Mute/Unmute ที่ตัว audio element
+        // อัปเดต UI ปุ่ม
+        iconSpeakerOn.classList.toggle('hidden', isSpeakerMuted);
+        iconSpeakerOff.classList.toggle('hidden', !isSpeakerMuted);
+        muteSpeakerButton.classList.toggle('active', isSpeakerMuted);
+        muteSpeakerButton.setAttribute('title', isSpeakerMuted ? 'Unmute Your Speaker' : 'Mute Your Speaker');
+    }
+
+    // ตั้งค่าเริ่มต้น & เพิ่ม Event Listener ให้ปุ่ม
+    audioEl.muted = isSpeakerMuted; // ลำโพงตัวเองไม่ Mute ตอนเริ่ม
+    iconSpeakerOn.classList.toggle('hidden', isSpeakerMuted);
+    iconSpeakerOff.classList.toggle('hidden', !isSpeakerMuted);
+    muteSpeakerButton.setAttribute('title', isSpeakerMuted ? 'Unmute Your Speaker' : 'Mute Your Speaker');
+    muteSpeakerButton.addEventListener('click', toggleSpeakerMute);
+
+    // เสียงจาก Driver เริ่มต้นไม่ Mute
+    iconMicOn.classList.toggle('hidden', isMicMuted);
+    iconMicOff.classList.toggle('hidden', !isMicMuted);
+    muteMicButton.setAttribute('title', isMicMuted ? 'Unmute Driver Mic' : 'Mute Driver Mic');
+    muteMicButton.addEventListener('click', toggleMicMute);
+
+
+    // --- WebRTC Logic (แก้ไข ontrack) ---
     function createPeerConnection() {
       pc = new RTCPeerConnection({ iceServers: iceServers });
 
@@ -164,13 +216,13 @@
       };
 
       pc.ontrack = (event) => {
-        console.log('Got remote track!');
-        // (แก้ไข) เพื่อความชัวร์ ให้เช็ก track ว่ามีไหม
-        if (event.streams && event.streams[0]) {
-            videoEl.srcObject = event.streams[0];
-            driverInfoEl.classList.remove('hidden');
-        } else {
-             console.error('onTrack event fired but no stream found.');
+        console.log('Got remote track (kind:', event.track.kind + ')!');
+        if (event.track.kind === 'audio' && event.streams && event.streams[0]) {
+             audioEl.srcObject = event.streams[0];
+             // ตั้งค่า enabled ตามสถานะ isMicMuted ปัจจุบัน
+             event.track.enabled = !isMicMuted;
+             audioEl.play().catch(e => console.error("Audio play failed:", e));
+             driverInfoEl.classList.remove('hidden'); // แสดงข้อมูลเมื่อ Track มา
         }
       };
 
@@ -179,19 +231,23 @@
           console.log('PeerConnection State:', state);
           if (state === 'connected') {
               updateStatus(true, 'Stream Connected');
-              driverInfoEl.classList.remove('hidden'); 
+              driverInfoEl.classList.remove('hidden');
+              audioControlsEl.classList.remove('hidden'); // แสดงปุ่มเมื่อ Stream ต่อติด
           } else if (state === 'failed' || state === 'disconnected' || state === 'closed') {
               updateStatus(false, 'Stream Disconnected');
               if(pc) pc.close();
               pc = null;
+              // รีเซ็ตข้อมูลคนขับ
               infoScoreEl.textContent = '--';
               infoSpeedEl.textContent = '--';
               infoAlertsEl.textContent = 'N/A';
               infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
               driverInfoEl.classList.add('hidden');
+              audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มเมื่อ Stream หลุด
           } else {
               updateStatus(true, `Stream ${state}...`);
               driverInfoEl.classList.add('hidden');
+              audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มระหว่างเชื่อมต่อ
           }
       };
     }
@@ -199,38 +255,24 @@
     function connectWebSocket() {
       updateStatus(false, 'Connecting to server...');
       driverInfoEl.classList.add('hidden');
+      audioControlsEl.classList.add('hidden'); // ซ่อนปุ่มตอนเริ่มต่อ
       ws = new WebSocket(WSS_URL);
 
       ws.onopen = () => {
         console.log('Connected to Signaling Server as Monitor');
         ws.send(JSON.stringify({ type: 'identify', role: 'monitor' }));
-        updateStatus(true, 'Server Connected'); 
-        
-        // (แก้ไข) เราสร้าง PC ไว้รอรับ Offer ได้เลย
-        // ไม่ต้องรอ onmessage
-        if (!pc) {
-            createPeerConnection();
-        }
+        updateStatus(true, 'Server Connected');
+        createPeerConnection();
       };
 
       ws.onmessage = async (message) => {
         const data = JSON.parse(message.data);
-        
         if (data.type === 'info') {
            console.log('Server Info:', data.message);
         } else {
            switch (data.type) {
               case 'offer':
                 if (!pc) createPeerConnection();
-                
-                // (แก้ไข) เพิ่มการตั้งค่า Transceiver ให้รับอย่างเดียว
-                // เพื่อให้แมตช์กับ Final_2 (ที่ส่งอย่างเดียว)
-                pc.getTransceivers().forEach(transceiver => {
-                    if (transceiver.direction === 'inactive') {
-                       transceiver.direction = 'recvonly';
-                    }
-                });
-                
                 await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
@@ -244,6 +286,7 @@
                 break;
 
               case 'statusUpdate':
+                // ... (โค้ด statusUpdate เหมือนเดิม) ...
                 const payload = data.payload;
                 infoScoreEl.textContent = payload.score ?? '--';
                 infoSpeedEl.textContent = payload.speed ?? '--';
@@ -271,33 +314,37 @@
                     infoAlertsEl.className = 'text-green-400 font-semibold px-2 py-1 rounded bg-green-900/50 text-base';
                 }
                 break;
-            }
-        } 
-      }; 
+            } // จบ switch
+        } // จบ else
+      }; // จบ onmessage
 
       ws.onclose = () => {
         console.log('Disconnected from server. Retrying...');
-        updateStatus(false, 'Server Disconnected. Retrying...');
+        updateStatus(false, 'Server Disconnected. Retrying...'); // Server หลุด
         if(pc) {
           pc.close();
           pc = null;
         }
+        // รีเซ็ตข้อมูลคนขับ
         infoScoreEl.textContent = '--';
         infoSpeedEl.textContent = '--';
         infoAlertsEl.textContent = 'N/A';
         infoAlertsEl.className = 'text-slate-500 font-semibold px-2 py-1 rounded text-base';
-        driverInfoEl.classList.add('hidden'); 
+        driverInfoEl.classList.add('hidden');
+        audioControlsEl.classList.add('hidden'); // ซ่อนปุ่ม
 
         setTimeout(connectWebSocket, 3000);
       };
 
       ws.onerror = (err) => {
         console.error('WebSocket Error:', err);
-        updateStatus(false, 'Server Connection Error');
+        updateStatus(false, 'Server Connection Error'); // เกิด Error
         driverInfoEl.classList.add('hidden');
+        audioControlsEl.classList.add('hidden'); // ซ่อนปุ่ม
       };
     }
 
+    // เริ่มการเชื่อมต่อ
     connectWebSocket();
   </script>
 </body>
